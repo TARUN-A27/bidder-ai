@@ -1,7 +1,7 @@
 # BidGuard AI API Contract
 
-Status: **FROZEN FOR FRONTEND INTEGRATION**  
-Version: **v1 prototype**  
+Status: **FROZEN FOR FRONTEND INTEGRATION**
+Version: **v1 prototype**
 Base path: **`/api/v1`**
 
 This contract covers the frontend workflow endpoints currently mounted by FastAPI. Operational routes `/health` and `/health/database` exist outside the base path. The older `/api/v1/submissions/{submission_id}/documents/zip` and `/documents/folder` routes upload PDFs to a pre-created submission; they are not part of the frozen frontend flow. Frontend development should use the tender-scoped import endpoints documented below.
