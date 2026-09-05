@@ -4,6 +4,8 @@ Owner: Developer 4
 Branch: `dev/frontend`  
 Status: READY
 
+API contract: `docs/API_CONTRACT.md`. Build against the documented contract, not assumptions.
+
 ## Goal
 
 Build the BidGuard frontend using existing backend APIs.

@@ -14,6 +14,8 @@
 
 `developer branch → commit → push → PR to integration → review → QA → integration → main`
 
+Frontend/backend integration uses `docs/API_CONTRACT.md` as the shared contract.
+
 ## Rules
 
 - Do not push directly to `main`.

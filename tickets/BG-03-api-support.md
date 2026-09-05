@@ -4,6 +4,8 @@ Owner: Developer 3
 Branch: `dev/backend-api`  
 Status: READY
 
+API contract: `docs/API_CONTRACT.md`. API changes must keep this contract synchronized.
+
 ## Goal
 
 Maintain the backend APIs used by the frontend.

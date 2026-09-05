@@ -4,6 +4,8 @@ Owner: Developer 5
 Branch: `dev/qa`  
 Status: READY
 
+API contract: `docs/API_CONTRACT.md`. Verify implementation behavior against this contract.
+
 ## Goal
 
 Test the complete BidGuard flow and catch regressions without rewriting core logic.
