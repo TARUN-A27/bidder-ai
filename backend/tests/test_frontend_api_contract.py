@@ -71,7 +71,7 @@ def make_assessment() -> AssessmentSummaryResponse:
             status="COMPLIANT",
             reason="Requirement satisfied",
             requires_human_review=False,
-            evidence=[],
+            evidence={},
             source_references=[],
             warnings=[],
             title=f"Requirement {index}",
@@ -222,7 +222,7 @@ class FakeIngestionService:
 @pytest.fixture
 def contract_app(settings_factory):
     application = create_app()
-    application.dependency_overrides[get_settings] = settings_factory
+    application.dependency_overrides[get_settings] = lambda: settings_factory()
     yield application
     application.dependency_overrides.clear()
 
@@ -241,11 +241,7 @@ def test_frozen_endpoint_paths_are_registered(contract_app):
         "/api/v1/tenders/{tender_id}/comparison",
     }
 
-    actual_paths = {
-        route.path
-        for route in contract_app.routes
-        if route.path.startswith("/api/v1")
-    }
+    actual_paths = set(contract_app.openapi()["paths"])
 
     assert expected_paths.issubset(actual_paths)
 
