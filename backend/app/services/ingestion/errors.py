@@ -37,6 +37,10 @@ class IngestionMetadataError(IngestionError):
     pass
 
 
+class BidderIdentityExtractionError(IngestionError):
+    pass
+
+
 class TenderNotFoundError(IngestionError):
     pass
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -65,3 +67,20 @@ class SubmissionIngestionResponse(BaseModel):
     status: str
     ready_for_assessment: bool
     duplicate_import: bool = False
+
+
+class BulkSubmissionImportItem(BaseModel):
+    package_label: str
+    status: Literal["IMPORTED", "DUPLICATE", "FAILED"]
+    submission: SubmissionIngestionResponse | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+
+
+class BulkSubmissionIngestionResponse(BaseModel):
+    tender_id: str
+    package_count: int
+    imported_count: int
+    duplicate_count: int
+    failed_count: int
+    items: list[BulkSubmissionImportItem] = Field(default_factory=list)

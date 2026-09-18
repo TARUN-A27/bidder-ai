@@ -48,8 +48,10 @@ Multipart field: `file`
 Optional metadata field: `bidder_metadata`
 
 ```bash
-curl -X POST -F "file=@submission.zip" -F 'bidder_metadata={"bidder_name":"Example Bidder","pan_reference":"ABCDE1234F"}' http://localhost:8000/api/v1/tenders/{tender_id}/submissions/import-zip
+curl -X POST -F "file=@submission.zip" http://localhost:8000/api/v1/tenders/{tender_id}/submissions/import-zip
 ```
+
+For Procurement Officer uploads, bidder identity is derived from bidder evidence. The optional `bidder_metadata` field remains supported only for backward compatibility/testing.
 
 The response returns a `submission_id`. Use that backend-returned ID for assessment.
 
@@ -59,7 +61,24 @@ Multipart file field: `files` and repeat it for each PDF.
 Metadata field: `bidder_profile`.
 
 ```bash
-curl -X POST -F "files=@technical.pdf" -F "files=@commercial.pdf" -F 'bidder_profile={"bidder_name":"Example Bidder","pan_reference":"ABCDE1234F"}' http://localhost:8000/api/v1/tenders/{tender_id}/submissions/import-files
+curl -X POST -F "files=@technical.pdf" -F "files=@commercial.pdf" http://localhost:8000/api/v1/tenders/{tender_id}/submissions/import-files
+```
+
+### Bulk ZIP containing multiple bidder folders
+
+```bash
+curl -X POST -F "file=@tender_submissions.zip" http://localhost:8000/api/v1/tenders/{tender_id}/submissions/import-bulk-zip
+```
+
+### Parent folder upload
+
+Repeat `files` and preserve each relative path in the multipart filename.
+
+```bash
+curl -X POST \
+  -F "files=@A-gst.pdf;filename=bidders/Bidder_A/documents/A-gst.pdf" \
+  -F "files=@B-gst.pdf;filename=bidders/Bidder_B/documents/B-gst.pdf" \
+  http://localhost:8000/api/v1/tenders/{tender_id}/submissions/import-folder
 ```
 
 ## 7. Explicitly assess a submission

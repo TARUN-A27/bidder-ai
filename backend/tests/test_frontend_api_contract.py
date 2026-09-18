@@ -235,6 +235,8 @@ def test_frozen_endpoint_paths_are_registered(contract_app):
         "/api/v1/submissions/{submission_id}",
         "/api/v1/tenders/{tender_id}/submissions/import-zip",
         "/api/v1/tenders/{tender_id}/submissions/import-files",
+        "/api/v1/tenders/{tender_id}/submissions/import-bulk-zip",
+        "/api/v1/tenders/{tender_id}/submissions/import-folder",
         "/api/v1/submissions/{submission_id}/assess",
         "/api/v1/submissions/{submission_id}/assessment",
         "/api/v1/submissions/{submission_id}/requirement-results",
@@ -455,7 +457,7 @@ def test_import_files_uses_repeated_files_and_bidder_profile(contract_app):
     assert len(package.documents) == 2
 
 
-def test_import_files_missing_bidder_profile_has_fastapi_validation_shape(
+def test_import_files_allows_missing_bidder_profile_for_auto_discovery(
     contract_app,
 ):
     service = FakeIngestionService()
@@ -473,13 +475,10 @@ def test_import_files_missing_bidder_profile_has_fastapi_validation_shape(
         ],
     )
 
-    assert response.status_code == 422
-
-    detail = response.json()["detail"]
-
-    assert isinstance(detail, list)
-    assert detail[0]["type"] == "missing"
-    assert "bidder_profile" in detail[0]["loc"]
+    assert response.status_code == 201
+    assert service.calls
+    _, package = service.calls[0]
+    assert package.bidder is None
 
 
 def test_import_files_structured_ingestion_error(contract_app):

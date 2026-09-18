@@ -49,9 +49,10 @@ class CollectedPackageDocument:
 class CollectedPackage:
     root: Path
     payload_root: Path
-    bidder: BidderImportMetadata
+    bidder: BidderImportMetadata | None
     manifest: SubmissionManifestInput | None
     documents: list[CollectedPackageDocument]
+    package_label: str | None = None
 
     def cleanup(self) -> None:
         shutil.rmtree(self.root, ignore_errors=True)
@@ -84,7 +85,7 @@ class SubmissionPackageCollector:
     async def collect_files(
         self,
         uploads: list[UploadFile],
-        bidder_profile: str,
+        bidder_profile: str | None = None,
         document_manifest: str | None = None,
     ) -> CollectedPackage:
         if not uploads:
@@ -114,7 +115,10 @@ class SubmissionPackageCollector:
                     local_path=destination, size_bytes=size,
                     sha256=digest, page_count=page_count,
                 ))
-            bidder = parse_bidder_metadata(self._load_json_text(bidder_profile, "bidder_profile"))
+            bidder = (
+                parse_bidder_metadata(self._load_json_text(bidder_profile, "bidder_profile"))
+                if bidder_profile else None
+            )
             manifest = (
                 parse_manifest(self._load_json_text(document_manifest, "document_manifest"))
                 if document_manifest else None
@@ -123,6 +127,176 @@ class SubmissionPackageCollector:
             return CollectedPackage(root, payload_root, bidder, manifest, documents)
         except Exception:
             shutil.rmtree(root, ignore_errors=True)
+            raise
+
+    async def collect_bulk_zip(self, upload: UploadFile) -> list[CollectedPackage]:
+        """Collect one ZIP containing one or more bidder directories.
+
+        Bulk mode intentionally treats PDFs as the source of bidder identity.
+        JSON/test artefacts outside bidder document folders are ignored.
+        """
+
+        if Path(upload.filename or "").suffix.casefold() != ".zip":
+            raise InvalidSubmissionArchiveError("A .zip archive is required")
+        archive_root = self._new_root()
+        archive_path = archive_root / "package.zip"
+        packages: list[CollectedPackage] = []
+        try:
+            await self._write_upload(upload, archive_path, self.settings.max_archive_bytes)
+            if not zipfile.is_zipfile(archive_path):
+                raise InvalidSubmissionArchiveError("The upload is not a valid ZIP archive")
+
+            with zipfile.ZipFile(archive_path) as archive:
+                pdf_entries: dict[str, zipfile.ZipInfo] = {}
+                total_size = 0
+                for info in archive.infolist():
+                    relative = self._safe_relative_path(info.filename, directory=info.is_dir())
+                    self._validate_zip_metadata(info)
+                    if info.is_dir():
+                        continue
+                    if PurePosixPath(relative).suffix.casefold() != ".pdf":
+                        continue
+                    if info.file_size > self.settings.max_pdf_bytes:
+                        raise UnsupportedFileTypeError(
+                            f"PDF exceeds the configured size limit: {PurePosixPath(relative).name}"
+                        )
+                    total_size += info.file_size
+                    self._check_total_size(total_size)
+                    if info.file_size and (
+                        info.compress_size == 0
+                        or info.file_size / info.compress_size > self.settings.max_zip_compression_ratio
+                    ):
+                        raise InvalidSubmissionArchiveError(
+                            "ZIP entry has an unsafe compression ratio"
+                        )
+                    pdf_entries[relative] = info
+
+                if not pdf_entries:
+                    raise UnsupportedFileTypeError("The package does not contain any PDFs")
+                if len(pdf_entries) > self.settings.max_upload_files:
+                    raise UnsupportedFileTypeError("The package contains too many PDFs")
+
+                groups = self._group_bulk_paths(list(pdf_entries))
+                if not groups:
+                    raise InvalidSubmissionArchiveError(
+                        "No bidder document groups could be detected in the ZIP"
+                    )
+
+                for group_key, relatives in groups.items():
+                    package_root = self._new_root()
+                    payload_root = package_root / "payload"
+                    payload_root.mkdir()
+                    seen_names: set[str] = set()
+                    documents: list[CollectedPackageDocument] = []
+                    try:
+                        for relative in sorted(relatives, key=str.casefold):
+                            info = pdf_entries[relative]
+                            filename = self._pdf_filename(relative)
+                            self._claim_filename(filename, seen_names)
+                            destination = payload_root / filename
+                            digest = hashlib.sha256()
+                            written = 0
+                            with archive.open(info) as source, destination.open("xb") as target:
+                                while chunk := source.read(CHUNK_SIZE):
+                                    written += len(chunk)
+                                    if written > self.settings.max_pdf_bytes:
+                                        raise UnsupportedFileTypeError(
+                                            f"PDF exceeds the configured size limit: {filename}"
+                                        )
+                                    digest.update(chunk)
+                                    target.write(chunk)
+                            if written != info.file_size:
+                                raise InvalidSubmissionArchiveError(
+                                    f"ZIP entry size mismatch: {filename}"
+                                )
+                            documents.append(CollectedPackageDocument(
+                                original_path=relative,
+                                filename=filename,
+                                local_path=destination,
+                                size_bytes=written,
+                                sha256=digest.hexdigest(),
+                                page_count=self._validate_pdf(destination, filename),
+                            ))
+                        packages.append(CollectedPackage(
+                            root=package_root,
+                            payload_root=payload_root,
+                            bidder=None,
+                            manifest=None,
+                            documents=documents,
+                            package_label=PurePosixPath(group_key).name or "bidder",
+                        ))
+                    except Exception:
+                        shutil.rmtree(package_root, ignore_errors=True)
+                        raise
+            return packages
+        except Exception:
+            for package in packages:
+                package.cleanup()
+            raise
+        finally:
+            shutil.rmtree(archive_root, ignore_errors=True)
+
+    async def collect_bulk_files(self, uploads: list[UploadFile]) -> list[CollectedPackage]:
+        """Collect a browser-selected parent folder containing bidder subfolders."""
+
+        if not uploads:
+            raise UnsupportedFileTypeError("At least one PDF is required")
+        if len(uploads) > self.settings.max_upload_files:
+            raise UnsupportedFileTypeError("The selected folder contains too many files")
+
+        candidates: list[tuple[UploadFile, str]] = []
+        for upload in uploads:
+            relative = self._safe_relative_path(upload.filename or "")
+            if PurePosixPath(relative).suffix.casefold() == ".pdf":
+                candidates.append((upload, relative))
+        if not candidates:
+            raise UnsupportedFileTypeError("The selected folder does not contain any PDFs")
+
+        groups = self._group_bulk_paths([relative for _, relative in candidates])
+        by_relative = {relative: upload for upload, relative in candidates}
+        packages: list[CollectedPackage] = []
+        total_size = 0
+        try:
+            for group_key, relatives in groups.items():
+                package_root = self._new_root()
+                payload_root = package_root / "payload"
+                payload_root.mkdir()
+                seen_names: set[str] = set()
+                documents: list[CollectedPackageDocument] = []
+                try:
+                    for relative in sorted(relatives, key=str.casefold):
+                        upload = by_relative[relative]
+                        filename = self._pdf_filename(relative)
+                        self._claim_filename(filename, seen_names)
+                        destination = payload_root / filename
+                        size, digest = await self._write_upload(
+                            upload, destination, self.settings.max_pdf_bytes
+                        )
+                        total_size += size
+                        self._check_total_size(total_size)
+                        documents.append(CollectedPackageDocument(
+                            original_path=relative,
+                            filename=filename,
+                            local_path=destination,
+                            size_bytes=size,
+                            sha256=digest,
+                            page_count=self._validate_pdf(destination, filename),
+                        ))
+                    packages.append(CollectedPackage(
+                        root=package_root,
+                        payload_root=payload_root,
+                        bidder=None,
+                        manifest=None,
+                        documents=documents,
+                        package_label=PurePosixPath(group_key).name or "bidder",
+                    ))
+                except Exception:
+                    shutil.rmtree(package_root, ignore_errors=True)
+                    raise
+            return packages
+        except Exception:
+            for package in packages:
+                package.cleanup()
             raise
 
     def _extract(
@@ -201,13 +375,62 @@ class SubmissionPackageCollector:
             self._load_json_text(metadata_override, "bidder metadata")
             if metadata_override else metadata.get("bidder_profile.json")
         )
-        if profile_payload is None:
-            raise IngestionMetadataError("bidder_profile.json or bidder metadata is required")
-        bidder = parse_bidder_metadata(profile_payload)
+        bidder = parse_bidder_metadata(profile_payload) if profile_payload is not None else None
         manifest_payload = metadata.get("document_manifest.json")
         manifest = parse_manifest(manifest_payload) if manifest_payload is not None else None
         documents.sort(key=lambda item: item.filename.casefold())
         return CollectedPackage(root, payload_root, bidder, manifest, documents)
+
+    @staticmethod
+    def _group_bulk_paths(paths: list[str]) -> dict[str, list[str]]:
+        """Group relative PDF paths into bidder packages.
+
+        Prefer a conventional ``<bidder>/documents/...`` boundary. If it is
+        absent, infer one bidder directory below the longest common path.
+        """
+
+        if not paths:
+            return {}
+
+        explicit: dict[str, list[str]] = {}
+        for relative in paths:
+            parts = PurePosixPath(relative).parts
+            lowered = [part.casefold() for part in parts]
+            if "documents" not in lowered[:-1]:
+                continue
+            index = max(
+                position
+                for position, value in enumerate(lowered[:-1])
+                if value == "documents"
+            )
+            if index < 1:
+                continue
+            group = "/".join(parts[:index])
+            explicit.setdefault(group, []).append(relative)
+        if explicit:
+            return explicit
+
+        parent_parts = [PurePosixPath(path).parts[:-1] for path in paths]
+        common: list[str] = []
+        if parent_parts:
+            for values in zip(*parent_parts):
+                if len(set(values)) != 1:
+                    break
+                common.append(values[0])
+
+        groups: dict[str, list[str]] = {}
+        for relative in paths:
+            parts = PurePosixPath(relative).parts
+            directories = parts[:-1]
+            if len(directories) > len(common):
+                group_parts = (*common, directories[len(common)])
+            else:
+                group_parts = tuple(common) or ("bidder",)
+            group = "/".join(group_parts)
+            groups.setdefault(group, []).append(relative)
+
+        # A single inferred group is a normal single-bidder package.
+        return groups
 
     def _new_root(self) -> Path:
         root = self.settings.storage_root / ".staging" / str(uuid.uuid4())

@@ -43,7 +43,9 @@ Current risk values:
 | GET | `/api/v1/tenders/{tender_id}/submissions` | List bidder submissions | Tender bidder list |
 | GET | `/api/v1/submissions/{submission_id}` | Get one submission | Submission header/status |
 | POST | `/api/v1/tenders/{tender_id}/submissions/import-zip` | Import a bidder ZIP | ZIP import flow |
-| POST | `/api/v1/tenders/{tender_id}/submissions/import-files` | Import multiple bidder PDFs | Folder/multi-file import flow |
+| POST | `/api/v1/tenders/{tender_id}/submissions/import-files` | Import multiple bidder PDFs; bidder metadata is optional | Single-bidder folder/multi-file import |
+| POST | `/api/v1/tenders/{tender_id}/submissions/import-bulk-zip` | Detect and import multiple bidder folders from one ZIP | Bulk bidder ZIP import |
+| POST | `/api/v1/tenders/{tender_id}/submissions/import-folder` | Detect and import multiple bidder folders from relative file paths | Parent-folder bulk import |
 | POST | `/api/v1/submissions/{submission_id}/assess` | Run and persist assessment | Explicit assess action |
 | GET | `/api/v1/submissions/{submission_id}/assessment` | Read persisted assessment | Assessment summary/detail |
 | GET | `/api/v1/submissions/{submission_id}/requirement-results` | Read persisted requirement results | Compliance detail |
@@ -232,8 +234,9 @@ Request:
 - Path: `tender_id` opaque string.
 - Content type: `multipart/form-data`.
 - Required file field: `file` — one `.zip` archive.
-- Optional text field: `bidder_metadata` — JSON object string. When omitted, the ZIP must contain `bidder_profile.json`.
-- The ZIP may contain PDFs plus `bidder_profile.json` and optionally `document_manifest.json`.
+- Optional legacy text field: `bidder_metadata` — JSON object string.
+- If neither `bidder_metadata` nor `bidder_profile.json` is supplied, BidGuard derives bidder identity from uploaded PAN/GST/Udyam/product evidence using server-side Azure Document Intelligence.
+- Legacy `bidder_profile.json` and `document_manifest.json` remain accepted for regression/backward compatibility, but are not required from a Procurement Officer.
 
 Response: HTTP 201 for a new import or HTTP 200 for an exact reimport. The example shows an exact reimport and abbreviates `documents` to one item.
 
@@ -286,8 +289,8 @@ Request:
 - Path: `tender_id` opaque string.
 - Content type: `multipart/form-data`.
 - Required repeated file field: `files` — one or more PDFs.
-- Required text field: `bidder_profile` — JSON object string.
-- Optional text field: `document_manifest` — JSON object string.
+- Optional legacy text field: `bidder_profile` — JSON object string. When omitted, BidGuard derives bidder identity from the uploaded PDFs.
+- Optional legacy text field: `document_manifest` — JSON object string.
 
 The frontend-oriented flat `bidder_profile` JSON accepts these fields. `bidder_name` and `pan_reference` are required; omitted booleans default to `false`, and unsupported extra fields are rejected.
 
@@ -347,6 +350,43 @@ The `documents` array above is shortened to one representative item; the actual 
 HTTP status codes: `201`, `200`, `400`, `404`, `409`, `422`, `503`, and `500` under the same conditions as ZIP import.
 
 Frontend notes: Browser relative paths may be sent as multipart filenames, but the frozen response exposes safe normalized filenames, not local absolute storage paths.
+
+### POST `/api/v1/tenders/{tender_id}/submissions/import-bulk-zip`
+
+Purpose: Import one officer-supplied ZIP containing one or more bidder folders. Bidder folders are detected independently, so repeated PDF basenames across different bidders are valid. Bidder identity is extracted from evidence; JSON metadata is not required.
+
+Request:
+
+- Path: `tender_id` opaque string.
+- Content type: `multipart/form-data`.
+- Required file field: `file` — one ZIP.
+- Conventional `<bidder>/documents/*.pdf` folder boundaries are preferred. If no `documents` directory is present, BidGuard falls back to a common-parent grouping heuristic.
+- Non-bidder JSON/test artefacts outside detected bidder document folders are ignored in bulk mode. PDFs remain the assessment evidence.
+
+Response: HTTP 200 `BulkSubmissionIngestionResponse` containing one item per detected bidder package with `IMPORTED`, `DUPLICATE`, or `FAILED` status. A failed bidder does not erase successfully imported independent bidders.
+
+### POST `/api/v1/tenders/{tender_id}/submissions/import-folder`
+
+Purpose: Import a browser-selected parent folder containing one or more bidder subfolders.
+
+Request:
+
+- Path: `tender_id` opaque string.
+- Content type: `multipart/form-data`.
+- Required repeated field: `files`.
+- Multipart filenames must preserve browser relative paths (for example `file.webkitRelativePath || file.name`).
+- Bidder metadata JSON is not required.
+
+Response: Same bulk response as `import-bulk-zip`.
+
+Identity discovery rules for metadata-free imports:
+
+- PAN is the primary bidder key and must be extractable from PAN/GST/Udyam evidence.
+- Legal name is cross-checked across available PAN/GST/Udyam evidence.
+- GST and Udyam references are cross-checked against existing Oracle bidder records when present.
+- Offered make/model is derived from product-datasheet evidence when available.
+- Conflicting identity evidence is rejected for that bidder rather than silently guessed.
+- Full tender compliance/scoring/risk evaluation still occurs only through explicit POST assess.
 
 ### POST `/api/v1/submissions/{submission_id}/assess`
 

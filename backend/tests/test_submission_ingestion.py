@@ -201,7 +201,13 @@ def test_repository_rolls_back_when_storage_finalization_fails():
     cursor.__enter__ = Mock(return_value=cursor)
     cursor.__exit__ = Mock(return_value=False)
     cursor.fetchone.side_effect = [("DATASET",), ("submission", "Scanner 1", 1, 0, 0, 1)]
-    cursor.fetchall.side_effect = [[("bidder", "Example Private Limited")], []]
+    cursor.fetchall.side_effect = [[(
+        "bidder",
+        "Example Private Limited",
+        "SYNTH0001A",
+        "GST",
+        "UDYAM",
+    )], []]
     connection = Mock()
     connection.cursor.return_value = cursor
 

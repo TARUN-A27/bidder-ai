@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 import hashlib
+import os
 import shutil
 from pathlib import Path
 
@@ -19,21 +19,40 @@ from app.services.ingestion.errors import (
     ManifestValidationError,
     SubmissionStorageError,
 )
+from app.services.ingestion.identity_discovery import BidderIdentityDiscoveryService
 
 
 class SubmissionIngestionService:
-    def __init__(self, repository: SubmissionRepositoryProtocol, settings) -> None:
+    def __init__(
+        self,
+        repository: SubmissionRepositoryProtocol,
+        settings,
+        identity_discovery=None,
+    ) -> None:
         self.repository = repository
         self.settings = settings
+        self.identity_discovery = identity_discovery or BidderIdentityDiscoveryService(settings)
 
     def ingest(
         self,
         tender_id: str,
         package: CollectedPackage,
     ) -> SubmissionIngestionResponse:
-        warnings = self._validate_manifest(package)
+        discovery_warnings: list[str] = []
+        discovered_classifications = {}
+        if package.bidder is None:
+            discovery = self.identity_discovery.discover(package)
+            package.bidder = discovery.bidder
+            discovered_classifications = discovery.classifications
+            discovery_warnings.extend(discovery.warnings)
+
+        warnings = discovery_warnings + self._validate_manifest(package)
         classified = [
-            (document, classify_document(document.filename))
+            (
+                document,
+                discovered_classifications.get(document.filename.casefold())
+                or classify_document(document.filename),
+            )
             for document in package.documents
         ]
         warnings.extend(
@@ -111,8 +130,12 @@ class SubmissionIngestionService:
     def _validate_manifest(package: CollectedPackage) -> list[str]:
         manifest = package.manifest
         bidder = package.bidder
+        if bidder is None:
+            raise SubmissionStorageError("Bidder identity was not resolved before persistence")
         if manifest is None:
-            return ["No document manifest supplied; file-set matching was not performed"]
+            return [
+                "No document manifest supplied; bidder identity and file metadata were inferred from evidence"
+            ]
         if manifest.dataset_id and bidder.dataset_id and manifest.dataset_id != bidder.dataset_id:
             raise ManifestValidationError("Manifest dataset does not match bidder metadata")
         if bidder.bidder_reference and manifest.bidder_id != bidder.bidder_reference:

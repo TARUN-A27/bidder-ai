@@ -52,7 +52,15 @@ class SubmissionRepositoryProtocol(Protocol):
 
 
 def _canonical(value: str) -> str:
-    return " ".join(value.split()).casefold()
+    import re
+
+    cleaned = re.sub(r"[^a-z0-9]+", " ", value.casefold())
+    aliases = {"pvt": "private", "ltd": "limited", "co": "company"}
+    return " ".join(aliases.get(token, token) for token in cleaned.split())
+
+
+def _canonical_reference(value: str) -> str:
+    return "".join(value.split()).upper()
 
 
 class OracleSubmissionRepository:
@@ -178,7 +186,8 @@ class OracleSubmissionRepository:
     @staticmethod
     def _upsert_bidder(cursor, dataset_id: str, bidder: BidderImportMetadata) -> str:
         cursor.execute(
-            """SELECT id,legal_name FROM bidders
+            """SELECT id,legal_name,pan_reference,gst_reference,udyam_reference
+               FROM bidders
                WHERE UPPER(TRIM(pan_reference))=UPPER(TRIM(:pan)) FOR UPDATE""",
             pan=bidder.pan_reference,
         )
@@ -186,11 +195,34 @@ class OracleSubmissionRepository:
         if len(matches) > 1:
             raise BidderIdentityConflictError("Bidder PAN is not unique")
         if matches:
-            if _canonical(matches[0][1]) != _canonical(bidder.bidder_name):
+            row = matches[0]
+            if _canonical(row[1]) != _canonical(bidder.bidder_name):
                 raise BidderIdentityConflictError(
                     "Bidder PAN is already associated with another legal name"
                 )
-            return matches[0][0]
+            OracleSubmissionRepository._validate_optional_reference(
+                "GST", row[3], bidder.gst_reference
+            )
+            OracleSubmissionRepository._validate_optional_reference(
+                "Udyam", row[4], bidder.udyam_reference
+            )
+            return row[0]
+
+        OracleSubmissionRepository._assert_reference_not_reused(
+            cursor,
+            column="gst_reference",
+            label="GST",
+            reference=bidder.gst_reference,
+            pan_reference=bidder.pan_reference,
+        )
+        OracleSubmissionRepository._assert_reference_not_reused(
+            cursor,
+            column="udyam_reference",
+            label="Udyam",
+            reference=bidder.udyam_reference,
+            pan_reference=bidder.pan_reference,
+        )
+
         bidder_id = str(uuid.uuid5(
             BIDDER_NAMESPACE, f"{dataset_id}|{bidder.pan_reference.upper()}"
         ))
@@ -205,6 +237,41 @@ class OracleSubmissionRepository:
             synthetic=int(bidder.is_synthetic),
         )
         return bidder_id
+
+    @staticmethod
+    def _validate_optional_reference(label: str, stored: str | None, incoming: str | None) -> None:
+        if not stored or not incoming:
+            return
+        if _canonical_reference(stored) != _canonical_reference(incoming):
+            raise BidderIdentityConflictError(
+                f"Extracted {label} reference differs from the existing bidder record"
+            )
+
+    @staticmethod
+    def _assert_reference_not_reused(
+        cursor,
+        *,
+        column: str,
+        label: str,
+        reference: str | None,
+        pan_reference: str,
+    ) -> None:
+        if not reference:
+            return
+        if column not in {"gst_reference", "udyam_reference"}:
+            raise ValueError("Unsupported identity reference column")
+        cursor.execute(
+            f"""SELECT pan_reference FROM bidders
+                WHERE UPPER(TRIM({column}))=UPPER(TRIM(:reference))""",
+            reference=reference,
+        )
+        rows = cursor.fetchall()
+        if len(rows) > 1:
+            raise BidderIdentityConflictError(f"Bidder {label} reference is not unique")
+        if rows and _canonical_reference(rows[0][0]) != _canonical_reference(pan_reference):
+            raise BidderIdentityConflictError(
+                f"Extracted {label} reference is already associated with another PAN"
+            )
 
     @staticmethod
     def _submission(cursor, tender_id, bidder_id, bidder):

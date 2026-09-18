@@ -11,10 +11,15 @@ from starlette.concurrency import run_in_threadpool
 from app.api.dependencies import get_submission_ingestion_service
 from app.core.config import Settings, get_settings
 from app.core.errors import DatabaseUnavailableError
-from app.schemas.submission_ingestion import SubmissionIngestionResponse
+from app.schemas.submission_ingestion import (
+    BulkSubmissionImportItem,
+    BulkSubmissionIngestionResponse,
+    SubmissionIngestionResponse,
+)
 from app.services.ingestion.archive import CollectedPackage, SubmissionPackageCollector
 from app.services.ingestion.errors import (
     BidderIdentityConflictError,
+    BidderIdentityExtractionError,
     DuplicateSubmissionError,
     IngestionMetadataError,
     InvalidPdfError,
@@ -54,7 +59,9 @@ async def import_zip(
         logger.info(
             "IMPORT VALIDATION COMPLETE | import_id=%s import_type=zip tender_id=%s "
             "bidder_code=%s file_count=%s",
-            import_id, tender_id, package.bidder.bidder_reference or "unknown",
+            import_id,
+            tender_id,
+            package.bidder.bidder_reference if package.bidder and package.bidder.bidder_reference else "auto",
             len(package.documents),
         )
         result = await run_in_threadpool(service.ingest, tender_id, package)
@@ -87,11 +94,11 @@ async def import_zip(
 async def import_files(
     tender_id: str,
     files: Annotated[list[UploadFile], File(description="Bidder PDF files")],
-    bidder_profile: Annotated[str, Form(description="Bidder metadata JSON")],
     service: Service,
     settings: Annotated[Settings, Depends(get_settings)],
     response: Response,
-    document_manifest: Annotated[str | None, Form(description="Optional manifest JSON")] = None,
+    bidder_profile: Annotated[str | None, Form(description="Optional legacy bidder metadata JSON")] = None,
+    document_manifest: Annotated[str | None, Form(description="Optional legacy manifest JSON")] = None,
 ) -> SubmissionIngestionResponse:
     package: CollectedPackage | None = None
     import_id = str(uuid4())
@@ -107,7 +114,9 @@ async def import_files(
         logger.info(
             "IMPORT VALIDATION COMPLETE | import_id=%s import_type=multi_file tender_id=%s "
             "bidder_code=%s file_count=%s",
-            import_id, tender_id, package.bidder.bidder_reference or "unknown",
+            import_id,
+            tender_id,
+            package.bidder.bidder_reference if package.bidder and package.bidder.bidder_reference else "auto",
             len(package.documents),
         )
         result = await run_in_threadpool(service.ingest, tender_id, package)
@@ -137,11 +146,152 @@ async def import_files(
             await upload.close()
 
 
+@router.post("/import-bulk-zip", response_model=BulkSubmissionIngestionResponse)
+async def import_bulk_zip(
+    tender_id: str,
+    file: Annotated[UploadFile, File(description="ZIP containing one or more bidder folders")],
+    service: Service,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> BulkSubmissionIngestionResponse:
+    packages: list[CollectedPackage] = []
+    import_id = str(uuid4())
+    started = perf_counter()
+    logger.info(
+        "BULK IMPORT START | import_id=%s import_type=bulk_zip tender_id=%s archive=%s",
+        import_id, tender_id, file.filename or "unknown",
+    )
+    try:
+        packages = await SubmissionPackageCollector(settings).collect_bulk_zip(file)
+        response = await _ingest_bulk_packages(tender_id, packages, service)
+        logger.info(
+            "BULK IMPORT COMPLETE | import_id=%s import_type=bulk_zip tender_id=%s "
+            "packages=%s imported=%s duplicate=%s failed=%s duration_ms=%.1f",
+            import_id, tender_id, response.package_count, response.imported_count,
+            response.duplicate_count, response.failed_count,
+            (perf_counter() - started) * 1000,
+        )
+        return response
+    except Exception as exc:
+        logger.error(
+            "BULK IMPORT FAILED | import_id=%s import_type=bulk_zip tender_id=%s "
+            "error_type=%s duration_ms=%.1f",
+            import_id, tender_id, type(exc).__name__,
+            (perf_counter() - started) * 1000,
+        )
+        _raise_http_error(exc)
+        raise
+    finally:
+        for package in packages:
+            package.cleanup()
+        await file.close()
+
+
+@router.post("/import-folder", response_model=BulkSubmissionIngestionResponse)
+async def import_folder(
+    tender_id: str,
+    files: Annotated[list[UploadFile], File(description="Parent folder contents with relative paths")],
+    service: Service,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> BulkSubmissionIngestionResponse:
+    packages: list[CollectedPackage] = []
+    import_id = str(uuid4())
+    started = perf_counter()
+    logger.info(
+        "BULK IMPORT START | import_id=%s import_type=folder tender_id=%s file_count=%s",
+        import_id, tender_id, len(files),
+    )
+    try:
+        packages = await SubmissionPackageCollector(settings).collect_bulk_files(files)
+        response = await _ingest_bulk_packages(tender_id, packages, service)
+        logger.info(
+            "BULK IMPORT COMPLETE | import_id=%s import_type=folder tender_id=%s "
+            "packages=%s imported=%s duplicate=%s failed=%s duration_ms=%.1f",
+            import_id, tender_id, response.package_count, response.imported_count,
+            response.duplicate_count, response.failed_count,
+            (perf_counter() - started) * 1000,
+        )
+        return response
+    except Exception as exc:
+        logger.error(
+            "BULK IMPORT FAILED | import_id=%s import_type=folder tender_id=%s "
+            "error_type=%s duration_ms=%.1f",
+            import_id, tender_id, type(exc).__name__,
+            (perf_counter() - started) * 1000,
+        )
+        _raise_http_error(exc)
+        raise
+    finally:
+        for package in packages:
+            package.cleanup()
+        for upload in files:
+            await upload.close()
+
+
+async def _ingest_bulk_packages(
+    tender_id: str,
+    packages: list[CollectedPackage],
+    service: SubmissionIngestionService,
+) -> BulkSubmissionIngestionResponse:
+    items: list[BulkSubmissionImportItem] = []
+    for index, package in enumerate(packages, start=1):
+        label = package.package_label or f"bidder-{index}"
+        try:
+            result = await run_in_threadpool(service.ingest, tender_id, package)
+            items.append(BulkSubmissionImportItem(
+                package_label=label,
+                status="DUPLICATE" if result.duplicate_import else "IMPORTED",
+                submission=result,
+            ))
+        except Exception as exc:
+            code, message = _error_payload(exc)
+            items.append(BulkSubmissionImportItem(
+                package_label=label,
+                status="FAILED",
+                error_code=code,
+                error_message=message,
+            ))
+    return BulkSubmissionIngestionResponse(
+        tender_id=tender_id,
+        package_count=len(items),
+        imported_count=sum(item.status == "IMPORTED" for item in items),
+        duplicate_count=sum(item.status == "DUPLICATE" for item in items),
+        failed_count=sum(item.status == "FAILED" for item in items),
+        items=items,
+    )
+
+
+def _error_payload(exc: Exception) -> tuple[str, str]:
+    if isinstance(exc, TenderNotFoundError):
+        return "TENDER_NOT_FOUND", str(exc)
+    if isinstance(exc, DatabaseUnavailableError):
+        return "DATABASE_UNAVAILABLE", "Database is unavailable"
+    if isinstance(exc, BidderIdentityExtractionError):
+        return "BIDDER_IDENTITY_EXTRACTION_FAILED", str(exc)
+    if isinstance(exc, (
+        DuplicateSubmissionError,
+        BidderIdentityConflictError,
+        SubmissionStorageError,
+        InvalidSubmissionArchiveError,
+        UnsafeArchivePathError,
+        UnsupportedFileTypeError,
+        InvalidPdfError,
+        ManifestValidationError,
+        IngestionMetadataError,
+    )):
+        return type(exc).__name__, str(exc)
+    return "INGESTION_FAILED", "Submission could not be ingested"
+
+
 def _raise_http_error(exc: Exception) -> None:
     if isinstance(exc, TenderNotFoundError):
         raise HTTPException(404, detail={"code": "TENDER_NOT_FOUND", "message": str(exc)}) from exc
     if isinstance(exc, (DuplicateSubmissionError, BidderIdentityConflictError, SubmissionStorageError)):
         raise HTTPException(409, detail={"code": type(exc).__name__, "message": str(exc)}) from exc
+    if isinstance(exc, BidderIdentityExtractionError):
+        raise HTTPException(
+            422,
+            detail={"code": "BIDDER_IDENTITY_EXTRACTION_FAILED", "message": str(exc)},
+        ) from exc
     if isinstance(exc, (
         InvalidSubmissionArchiveError, UnsafeArchivePathError,
         UnsupportedFileTypeError, InvalidPdfError,
