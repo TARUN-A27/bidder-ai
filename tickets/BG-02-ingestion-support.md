@@ -1,53 +1,96 @@
-# BG-02 — Ingestion Support
+# BG-02 — Runtime, Demo Operations, and Smoke QA
 
-Owner: Developer 2  
-Branch: `dev/backend-ingestion`  
+Owner: Backend Developer 3
+Branch: `dev/backend-ingestion`
+Priority: P0–P2
 Status: READY
 
-## Goal
+## Objective
 
-Maintain and improve bidder ZIP and folder/multi-file ingestion.
+Make the existing backend straightforward to start and demonstrate, then execute bounded runtime, import, and API smoke checks that remove operational work from the Tech Lead.
 
-## Tasks
+This ticket does not own uploaded-PDF assessment integration. That work belongs to Tarun under BG-01.
 
-- Support ZIP import.
-- Support multi-file and folder-style upload.
-- Validate PDFs and preserve SHA256 hashes.
-- Fix ingestion bugs.
-- Support deterministic document classification.
-- Resolve approved storage issues.
+## Exact Scope
 
-## Allowed Area
+- Verify dependency installation from `backend/requirements.txt`.
+- Verify backend startup and `/health` plus `/health/database`.
+- Verify required Oracle, Azure, storage, and prototype dataset settings without printing secrets.
+- Verify the configured prototype dataset path contains expected A/B/C inputs.
+- Add a confirmed missing package declaration such as `azure-ai-documentintelligence`.
+- Correct `.env.example`, README, or a concise demo runbook with setup/start/smoke commands.
+- Test tender-scoped ZIP and multi-file import using existing regression scripts.
+- Test seeded A/B/C API reads, persisted assessments, requirement results, and comparison.
+- Report failures with exact commands, status codes, and sanitized errors.
+- Perform the runtime/import portion of distributed QA.
 
-Backend ingestion services, ingestion schemas and APIs, submission/document repositories, storage handling, and ingestion tests.
+## Files / Modules Allowed
 
-## Do Not Change
+- `backend/requirements.txt` for missing declarations only
+- `backend/.env.example` for safe variable documentation
+- `README.md` and narrowly scoped demo/runbook documentation
+- Existing `backend/scripts/` only for a small smoke-test correction approved by Tarun
+- Test reports and ticket documentation
 
-- Compliance or scoring engines.
-- Risk behavior.
-- Frontend code.
-- Oracle schema unless the Tech Lead approves a demonstrated blocker.
+## Files / Modules Prohibited
 
-## Tests / Verification
+- `backend/app/services/assessment/`, including `PrototypeEvidenceProvider`
+- Assessment or document-processing orchestration
+- Compliance, scoring, recommendation, or risk engines
+- Oracle schema or migrations
+- API routers or response schemas
+- Ingestion services, archive validation, repositories, or storage internals
+- Fixtures, mock portal data, expected results, or frontend files
 
-- Run `python scripts/test_bidder_ingestion.py` when integration dependencies are available.
-- Run ingestion-related pytest tests.
-- Verify ZIP safety, PDF validation, hashing, cleanup, and duplicate handling for changed behavior.
+## Acceptance Criteria
 
-## Done When
+- A teammate can follow documented commands to install dependencies and start the backend.
+- The runbook covers health, database, dataset path, import, assessment reads, and comparison.
+- Azure and dataset-root variables are documented without credentials.
+- Confirmed missing dependency declarations are corrected.
+- ZIP and multi-file smoke checks have reproducible results.
+- Seeded A/B/C API data can be read when demo services are available.
+- Blocker reports include command, expectation, actual result, and sanitized environment context.
 
-- ZIP and multi-file ingestion work for the assigned change.
-- Storage and database metadata remain consistent.
-- Relevant ingestion and pytest tests pass.
+## Focused Test Commands
 
-## Final Report Required
+From `backend/`, using the active virtual environment:
 
-Report:
+```bash
+python -m pip install -r requirements.txt
+PYTHONPATH=. python -c "import fastapi, oracledb; import azure.ai.documentintelligence; print('dependency imports OK')"
+PYTHONPATH=. python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+curl -fsS http://127.0.0.1:8000/health
+curl -fsS http://127.0.0.1:8000/health/database
+PYTHONPATH=. python scripts/test_bidder_ingestion.py
+```
 
-1. Ticket ID
-2. Files created
-3. Files modified
-4. Tests run
-5. Test result
-6. Known issues
-7. Commit hash
+After Tarun confirms assessment integration is ready:
+
+```bash
+PYTHONPATH=. python scripts/test_assessment_persistence_api.py
+```
+
+Do not repeatedly run the full pytest suite. Tarun owns the final full regression.
+
+## Dependencies
+
+- Tarun confirms approved runtime configuration and handles complex failures.
+- Backend Developer 2 may provide endpoint curl examples or API findings.
+- Live checks require authorized Oracle/Azure configuration.
+
+## Stop / Escalation Conditions
+
+- Stop and report to Tarun if a fix needs a version pin/change, application-code edit, database change, or architectural decision.
+- Obtain Tarun approval before committing dependency compatibility changes.
+- Stop if a failure enters assessment, extraction, normalization, ingestion internals, API schemas, Oracle transactions, or decision logic.
+- Never print `.env`, credentials, or sensitive connection strings.
+
+## Git Handoff Procedure
+
+1. Work only on `dev/backend-ingestion` for this reassigned ticket.
+2. Keep setup/documentation and approved dependency declarations in focused commits.
+3. Include commands and sanitized results in the PR description.
+4. Push and open a PR to `integration`.
+5. Request Tarun's review for dependency changes.
+6. Do not push directly to `integration` or `main`.

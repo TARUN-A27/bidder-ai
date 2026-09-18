@@ -1,5 +1,13 @@
 # Team Workflow
 
+## Today's Four-Person Allocation
+
+- Tarun / Tech Lead / Backend Lead — `dev/backend-integration`: heavy backend integration, imported-PDF assessment orchestration, difficult Oracle/Azure/runtime blockers, review, final regression, and release gate.
+- Backend Developer 3 — `dev/backend-ingestion`: runtime/setup verification, demo operations, import/API smoke QA, and simple setup documentation.
+- Backend Developer 2 — `dev/backend-api`: frozen API contract verification, small router/schema fixes, and frontend support.
+- Frontend Developer — `dev/frontend`: Procurement Officer UI and browser/build/console QA.
+- There is no dedicated QA developer today. `dev/qa` is inactive; QA is distributed as documented in `tickets/BG-05-qa.md`.
+
 ## Branches
 
 - `main`: stable and demo-ready.
@@ -8,7 +16,7 @@
 - `dev/backend-ingestion`: ingestion work.
 - `dev/backend-api`: backend API work.
 - `dev/frontend`: frontend work.
-- `dev/qa`: QA and regression work.
+- `dev/qa`: reserved/inactive today; do not assign a fifth developer.
 
 ## Workflow
 

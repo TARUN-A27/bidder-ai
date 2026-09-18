@@ -1,56 +1,101 @@
-# BG-04 — Frontend
+# BG-04 — Procurement Officer Frontend
 
-Owner: Developer 4  
-Branch: `dev/frontend`  
+Owner: Frontend Developer
+Branch: `dev/frontend`
+Priority: P0–P2
 Status: READY
 
-API contract: `docs/API_CONTRACT.md`. Build against the documented contract, not assumptions.
+API contract: `docs/API_CONTRACT.md`. Build only against documented behavior.
 
-## Goal
+## Objective
 
-Build the BidGuard frontend using existing backend APIs.
+Build a professional, desktop-first Procurement Officer interface that completes the BidGuard demo using real backend APIs.
 
-## Tasks
+## Exact Scope
 
-- Build the tender dashboard.
-- Build the bidder submission import UI.
-- Build bidder list and compliance comparison views.
-- Build assessment summary and requirement-detail views.
-- Add loading, empty, success, and error states.
-- Keep the design clean and professional.
-- Use real backend APIs wherever they are available.
+Build under `frontend/`:
 
-## Allowed Area
+1. Tender Dashboard
+2. Tender Detail
+3. Bidder Submissions
+4. ZIP and multi-file bidder import
+5. Run Assessment
+6. Assessment Summary
+7. Requirement and Evidence Details
+8. Bidder Comparison
 
-Frontend source, frontend assets, frontend tests, and frontend-specific configuration or documentation.
+Requirements:
 
-## Do Not Change
+- Scaffold React, Vite, and Tailwind as needed.
+- Prefer a Vite `/api` proxy instead of requesting backend CORS changes.
+- Do not invent `/process`. During `POST /assess`, show "Processing documents and running assessment" or equivalent.
+- Implement loading, empty, processing, success, API-error, assessment-unavailable, and assessment-available states.
+- Parse string, object, and validation-array error details.
+- Display compliance, scores, risks, recommendations, evidence, and review values from APIs.
+- Keep the UI simple, professional, government/enterprise styled, desktop-first, without emoji or unnecessary animation.
+- Complete functionality before polish and perform browser/build/console QA.
 
-- Backend compliance or scoring engines.
-- Risk logic.
-- Oracle schema.
-- Backend API contracts without coordination with Developer 3 and the Tech Lead.
+## Files / Modules Allowed
 
-## Tests / Verification
+- Entire `frontend/` directory
+- Frontend-only configuration, API client, types, routes, pages, components, styles, assets, tests, and documentation
 
-- Run available frontend lint, type-check, test, and build commands.
-- Verify bidder import, tender/submission views, comparison, and assessment detail against real APIs.
-- Check the browser console for major errors.
+## Files / Modules Prohibited
 
-## Done When
+- All backend files and `docs/API_CONTRACT.md`
+- Client-derived compliance, score, risk, override, recommendation, or final decisions
+- Hard-coded A/B/C results
+- Automatic winner selection or financial/L1 ranking
+- Fixtures, mock portal data, or expected results
 
-- Bidder A, B, and C can be viewed through the frontend.
-- Import, comparison, and assessment-detail flows work.
-- Loading/error states are present and there are no major console errors.
+## Acceptance Criteria
 
-## Final Report Required
+- A user can navigate from dashboard through submissions, import, assessment, requirement details, and comparison.
+- Import forms send exact contract multipart fields.
+- The UI handles long-running `POST /assess` visibly.
+- Unavailable and persisted assessments are distinguished.
+- Requirement detail shows status, reason, review flag, evidence, sources, warnings, and points.
+- Comparison does not declare a winner.
+- `HUMAN_PROCUREMENT_OFFICER` authority is visible.
+- A/B/C values come only from live APIs.
+- Production build succeeds with no major console errors during the demo flow.
 
-Report:
+## Focused Test Commands
 
-1. Ticket ID
-2. Files created
-3. Files modified
-4. Tests run
-5. Test result
-6. Known issues
-7. Commit hash
+```bash
+cd frontend
+npm install
+npm run lint
+npm run build
+```
+
+If configured:
+
+```bash
+npm run test
+npm run typecheck
+```
+
+Manually verify dashboard, tender detail, A/B/C submissions, import, assessment, refresh, requirement details, comparison, and absence of hard-coded results or winner selection.
+
+## Dependencies
+
+- Backend Developer 2 supplies contract clarification, curl examples, and small API fixes.
+- Backend Developer 3 supplies verified backend start/health commands.
+- Tarun supplies integrated assessment and the release decision.
+
+## Stop / Escalation Conditions
+
+- Stop and report to Backend Developer 2 if a live payload differs from the contract.
+- Stop before modifying backend files or requesting a new endpoint.
+- Escalate contract changes and processing blockers to Tarun.
+- Do not compensate for backend errors by deriving decisions in the browser.
+
+## Git Handoff Procedure
+
+1. Work only on `dev/frontend`.
+2. Commit complete vertical slices where practical.
+3. Run build and browser verification before handoff.
+4. Push and open a PR to `integration`.
+5. Include concise visual/manual verification and test results.
+6. Request Tarun's review; do not push directly to `integration` or `main`.

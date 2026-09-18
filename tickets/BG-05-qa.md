@@ -1,62 +1,70 @@
-# BG-05 — QA
+# BG-05 — Distributed QA Ownership
 
-Owner: Developer 5  
-Branch: `dev/qa`  
-Status: READY
+Owner: No dedicated QA developer today
+Branch: No active QA branch assignment
+Priority: P0–P2
+Status: DISTRIBUTED — NOT A SEPARATE IMPLEMENTATION TICKET
 
-API contract: `docs/API_CONTRACT.md`. Verify implementation behavior against this contract.
+## Objective
 
-## Goal
+Document QA ownership across today's four developers. Do not assign a fifth developer or start work on `dev/qa`.
 
-Test the complete BidGuard flow and catch regressions without rewriting core logic.
+## Exact Scope
 
-## Tasks
+- Tarun: heavy backend verification, final A/B/C regression, E2E release gate, and merge approval.
+- Backend Developer 2: API contract tests, response/error verification, and frontend API bug reproduction.
+- Backend Developer 3: dependency/setup, startup, health, Oracle/Azure configuration, dataset path, import, and API smoke QA.
+- Frontend Developer: browser workflow, UI states, production build, and console QA.
+- Each developer records exact commands and honest results in their own handoff.
 
-- Test Bidder A, B, and C.
-- Test ZIP and multi-file upload/import.
-- Test assessment and comparison flows.
-- Test expected error cases.
-- Add end-to-end or regression tests where useful.
-- Report bugs with reproducible steps.
+## Files / Modules Allowed
 
-Known benchmarks:
+- Tests, scripts, and documentation allowed by each active ticket
+- Reproducible bug reports
+- This distributed-QA coordination document
 
-- A: `100.0 / LOW`, 21 PDFs.
-- B: `80.5 / HIGH`, 21 PDFs, EPFO contribution failure.
-- C: `34.0 / CRITICAL`, 19 PDFs, missing OEM authorization, GST cancellation, PAN mismatch, 32% local content, and active debarment.
+## Files / Modules Prohibited
 
-## Allowed Area
+- Independent QA application-code changes
+- Decision-logic changes merely to satisfy tests
+- Fixture, benchmark, expected-result, API contract, schema, or migration changes
+- New work on `dev/qa` today
 
-QA scripts, tests, test documentation, bug reports, and approved test-support code.
+## Acceptance Criteria
 
-## Do Not Change
+- Every active ticket reports its focused verification.
+- Import, assessment, persisted reads, requirement details, comparison, and expected errors are collectively covered.
+- Final regression confirms A `100.0 / LOW` with 21 PDFs, B `80.5 / HIGH` with 21 PDFs, and C `34.0 / CRITICAL` with 19 PDFs.
+- Final browser demo passes without major console errors.
+- Failures are routed to their owner rather than fixed across boundaries.
 
-- Compliance or scoring behavior to make tests pass.
-- Risk behavior or override IDs.
-- Expected-result fixtures.
-- Synthetic dataset files.
-- Core application logic without a separately approved fix ticket.
+## Focused Test Commands
 
-## Tests / Verification
+BG-01 through BG-04 define owner-specific commands. Tarun's final release gate includes:
 
-- Run relevant end-to-end and regression scripts.
-- Run `PYTHONPATH=. pytest -q` from `backend`.
-- Verify the known A/B/C benchmarks and controlled failure cases.
+```bash
+cd backend
+PYTHONPATH=. ../.venv/bin/python scripts/test_bidder_ingestion.py
+PYTHONPATH=. ../.venv/bin/python scripts/test_assessment_persistence_api.py
+PYTHONPATH=. ../.venv/bin/python -m pytest -q
+```
 
-## Done When
+Frontend additionally runs its configured lint/build/test commands and browser workflow.
 
-- A/B/C and upload, assessment, comparison, and error flows are covered.
-- Regressions have reproducible reports.
-- Added QA tests pass without altering expected core behavior.
+## Dependencies
 
-## Final Report Required
+- All four tickets report assigned verification.
+- Live regression requires authorized Oracle/Azure configuration and demo data.
+- Tarun decides whether a failure blocks release.
 
-Report:
+## Stop / Escalation Conditions
 
-1. Ticket ID
-2. Files created
-3. Files modified
-4. Tests run
-5. Test result
-6. Known issues
-7. Commit hash
+- Stop when QA reveals a bug outside the tester's ticket and report it to the owner and Tarun.
+- Stop before changing benchmarks, contracts, schemas, migrations, fixtures, or decision logic.
+- Do not assume an absent fifth-developer role.
+
+## Git Handoff Procedure
+
+- There is no separate BG-05 code handoff or active `dev/qa` PR today.
+- QA evidence travels with BG-01 through BG-04 PRs.
+- Tarun records final regression and browser-release results in the integration/release handoff.
