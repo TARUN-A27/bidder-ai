@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     storage_root: Path = PROJECT_ROOT / "storage" / "uploads"
     allow_preseeded_prototype_document_fallback: bool = True
 
+    log_root: Path = BACKEND_ROOT / "logs"
+    log_max_bytes: int = Field(default=10 * 1024 * 1024, ge=1024)
+    log_backup_count: int = Field(default=5, ge=1, le=20)
+
     max_upload_files: int = Field(default=100, ge=1, le=1000)
     max_archive_bytes: int = Field(default=100 * 1024 * 1024, ge=1)
     max_pdf_bytes: int = Field(default=25 * 1024 * 1024, ge=1)

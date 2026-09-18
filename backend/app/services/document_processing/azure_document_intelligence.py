@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from time import perf_counter
 from types import TracebackType
 from typing import Self
 
@@ -23,7 +24,7 @@ from app.schemas.document_extraction import (
 )
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bidguard.azure")
 
 
 class DocumentExtractionError(Exception):
@@ -150,6 +151,11 @@ class AzureDocumentIntelligenceService:
             )
 
         request = AnalyzeDocumentRequest(bytes_source=document_bytes)
+        started = perf_counter()
+        logger.info(
+            "AZURE_DI START | document=%s model=%s size_bytes=%s",
+            resolved_path.name, self.model_id, len(document_bytes),
+        )
 
         try:
             poller = self._client.begin_analyze_document(
@@ -157,33 +163,53 @@ class AzureDocumentIntelligenceService:
                 request,
             )
             result = poller.result()
+            if result is None:
+                raise EmptyExtractionResultError(
+                    "Azure Document Intelligence returned no result"
+                )
+            normalized = self._normalize_result(
+                result=result,
+                source_path=resolved_path,
+            )
         except ClientAuthenticationError as exc:
             logger.error(
-                "Azure Document Intelligence authentication failed for %s",
-                resolved_path.name,
+                "AZURE_DI FAILED | document=%s model=%s error_type=%s duration_ms=%.1f",
+                resolved_path.name, self.model_id, type(exc).__name__,
+                (perf_counter() - started) * 1000,
             )
             raise AzureDocumentAuthenticationError(
                 "Azure Document Intelligence authentication failed"
             ) from exc
         except AzureError as exc:
             logger.error(
-                "Azure Document Intelligence request failed for %s: %s",
-                resolved_path.name,
-                type(exc).__name__,
+                "AZURE_DI FAILED | document=%s model=%s error_type=%s duration_ms=%.1f",
+                resolved_path.name, self.model_id, type(exc).__name__,
+                (perf_counter() - started) * 1000,
             )
             raise AzureDocumentServiceError(
                 "Azure Document Intelligence could not process the document"
             ) from exc
-
-        if result is None:
-            raise EmptyExtractionResultError(
-                "Azure Document Intelligence returned no result"
+        except DocumentExtractionError as exc:
+            logger.error(
+                "AZURE_DI FAILED | document=%s model=%s error_type=%s duration_ms=%.1f",
+                resolved_path.name, self.model_id, type(exc).__name__,
+                (perf_counter() - started) * 1000,
             )
+            raise
+        except Exception as exc:
+            logger.error(
+                "AZURE_DI FAILED | document=%s model=%s error_type=%s duration_ms=%.1f",
+                resolved_path.name, self.model_id, type(exc).__name__,
+                (perf_counter() - started) * 1000,
+            )
+            raise
 
-        return self._normalize_result(
-            result=result,
-            source_path=resolved_path,
+        logger.info(
+            "AZURE_DI COMPLETE | document=%s model=%s pages=%s tables=%s duration_ms=%.1f",
+            resolved_path.name, self.model_id, normalized.page_count,
+            normalized.table_count, (perf_counter() - started) * 1000,
         )
+        return normalized
 
     def _normalize_result(
         self,

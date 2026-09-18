@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
@@ -12,6 +13,9 @@ from app.services.document_processing.document_normalizer import DocumentNormali
 from app.services.document_processing.normalizers.base import DocumentNormalizationError
 from app.services.scoring.config_loader import ScoringConfigLoader, ScoringConfigurationError
 from app.services.verification.mock_verification_loader import MockVerificationLoader, MockVerificationError
+
+
+logger = logging.getLogger("bidguard.assessment")
 
 
 DOCUMENT_FIELDS = {
@@ -77,6 +81,7 @@ class PrototypeEvidenceProvider:
                           nsic_related_benefit=submission.nsic_claimed, emd_exemption=submission.emd_exemption_claimed,
                           mii_purchase_preference=profile["claims"].get("mii_purchase_preference", False)), emd_documents=[])
             normalizer = DocumentNormalizer()
+            normalized_count = 0
             with AzureDocumentIntelligenceService(self.settings) as extractor:
                 for item in manifest.documents:
                     path = document_paths[item.file_name.casefold()]
@@ -86,10 +91,15 @@ class PrototypeEvidenceProvider:
                     extraction = extractor.extract(path)
                     explicit = "EMD_EVIDENCE" if "EMD_Payment" in item.file_name else None
                     document = normalizer.normalize(extraction, document_type=explicit)
+                    normalized_count += 1
                     if document.document_type == "EMD_EVIDENCE":
                         values["emd_documents"].append(document)
                     else:
                         values[DOCUMENT_FIELDS[document.document_type]] = document
+            logger.info(
+                "NORMALIZATION COMPLETE | submission_id=%s bidder_id=%s document_count=%s",
+                submission.submission_id, submission.bidder_id, normalized_count,
+            )
             bidder = BidderEvidenceBundle.model_validate(values)
             verification = MockVerificationLoader().load(directory / "mock_portal_data.json")
             return context, bidder, verification, rules
@@ -100,14 +110,36 @@ class PrototypeEvidenceProvider:
             raise AssessmentInputError("Required prototype evidence or configuration is unavailable or invalid") from exc
 
     def _document_paths(self, submission, directory, profile, manifest):
-        stored = self.document_records(submission.submission_id)
-        if stored:
-            return self._validated_stored_paths(submission.submission_id, manifest, stored)
-        if (not self.settings.allow_preseeded_prototype_document_fallback
-                or profile.get("synthetic") is not True
-                or not self._is_preseeded_submission(submission)):
-            raise AssessmentInputError("Stored assessment documents are unavailable")
-        return self._validated_prototype_paths(directory, manifest)
+        source = "stored_uploads"
+        logger.info(
+            "DOCUMENT_SOURCE VALIDATION START | submission_id=%s tender_id=%s bidder_id=%s",
+            submission.submission_id, getattr(submission, "tender_id", "unknown"),
+            getattr(submission, "bidder_id", "unknown"),
+        )
+        try:
+            stored = self.document_records(submission.submission_id)
+            if stored:
+                paths = self._validated_stored_paths(
+                    submission.submission_id, manifest, stored
+                )
+            else:
+                source = "preseeded_prototype_fallback"
+                if (not self.settings.allow_preseeded_prototype_document_fallback
+                        or profile.get("synthetic") is not True
+                        or not self._is_preseeded_submission(submission)):
+                    raise AssessmentInputError("Stored assessment documents are unavailable")
+                paths = self._validated_prototype_paths(directory, manifest)
+        except Exception as exc:
+            logger.error(
+                "DOCUMENT_SOURCE VALIDATION FAILED | submission_id=%s source=%s error_type=%s",
+                submission.submission_id, source, type(exc).__name__,
+            )
+            raise
+        logger.info(
+            "DOCUMENT_SOURCE VALIDATION COMPLETE | submission_id=%s source=%s document_count=%s",
+            submission.submission_id, source, len(paths),
+        )
+        return paths
 
     @staticmethod
     def _is_preseeded_submission(submission):

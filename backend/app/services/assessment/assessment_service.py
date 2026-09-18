@@ -1,9 +1,16 @@
+import logging
+from collections import Counter
 from datetime import datetime, timezone
+from time import perf_counter
+from uuid import uuid4
 
 from app.schemas.assessment import AssessmentSummaryResponse, ComparisonResponse, PersistedRequirementResult
 from app.services.assessment.errors import AssessmentInputError, AssessmentStateError
 from app.services.compliance.compliance_engine import ComplianceEngine
 from app.services.scoring.scoring_engine import ScoringEngine
+
+
+logger = logging.getLogger("bidguard.assessment")
 
 
 class AssessmentPersistenceService:
@@ -21,33 +28,96 @@ class AssessmentService:
         self.evidence_provider = evidence_provider
 
     def run_assessment(self, submission_id, prepared_inputs=None):
-        submission = self.repository.submission(submission_id)
-        if submission.status not in {"UPLOADED", "SUBMITTED", "ASSESSED", "COMPLETED"}:
-            raise AssessmentStateError("Submission is not in an assessable state")
-        context, bidder, verification, rules = prepared_inputs or self.evidence_provider.load(submission)
-        if (bidder.legal_name != submission.bidder_name or bidder.pan_reference != submission.pan_reference
-                or bidder.offered_model != submission.offered_model
-                or context.dataset_id != submission.dataset_id or context.bid_number != submission.bid_number
-                or verification.bidder_id != bidder.bidder_id or verification.dataset_id != context.dataset_id
-                or rules.dataset_id != context.dataset_id):
-            raise AssessmentInputError("Assessment inputs do not match the existing submission")
-        detail = self.repository.tender(submission.tender_id)
-        metadata = {r["requirement_code"]: r for r in detail["requirements"]}
-        if set(metadata) != set(context.requirement_codes) or set(metadata) != set(rules.requirement_weights):
-            raise AssessmentInputError("Database and prototype tender requirements differ")
-        if any(float(rules.requirement_weights[code]) != float(row["weight"]) for code, row in metadata.items()):
-            raise AssessmentInputError("Database and prototype requirement weights differ")
-        results = ComplianceEngine().evaluate(context, bidder, verification)
-        assessment = ScoringEngine().assess(results, rules)
-        scores = {r.requirement_code: r for r in assessment.requirement_scores}
-        summary = AssessmentSummaryResponse(
-            **assessment.model_dump(), submission_id=submission_id, bidder_id=submission.bidder_id,
-            bidder_name=submission.bidder_name, tender_id=submission.tender_id,
-            assessed_at=datetime.now(timezone.utc), requirement_results=[PersistedRequirementResult(
-                **result.model_dump(), title=metadata[result.requirement_code]["title"],
-                configured_weight=scores[result.requirement_code].configured_weight,
-                awarded_points=scores[result.requirement_code].awarded_points) for result in results])
-        return AssessmentPersistenceService(self.repository).persist(summary, verification)
+        correlation_id = str(uuid4())
+        started = perf_counter()
+        stage = "submission_lookup"
+        logger.info(
+            "ASSESSMENT START | assessment_id=%s submission_id=%s",
+            correlation_id, submission_id,
+        )
+        try:
+            submission = self.repository.submission(submission_id)
+            if submission.status not in {"UPLOADED", "SUBMITTED", "ASSESSED", "COMPLETED"}:
+                raise AssessmentStateError("Submission is not in an assessable state")
+
+            stage = "evidence"
+            context, bidder, verification, rules = (
+                prepared_inputs or self.evidence_provider.load(submission)
+            )
+            if (bidder.legal_name != submission.bidder_name or bidder.pan_reference != submission.pan_reference
+                    or bidder.offered_model != submission.offered_model
+                    or context.dataset_id != submission.dataset_id or context.bid_number != submission.bid_number
+                    or verification.bidder_id != bidder.bidder_id or verification.dataset_id != context.dataset_id
+                    or rules.dataset_id != context.dataset_id):
+                raise AssessmentInputError("Assessment inputs do not match the existing submission")
+            verification_count = sum(
+                hasattr(getattr(verification, field), "source_system")
+                for field in getattr(type(verification), "model_fields", {})
+            )
+            logger.info(
+                "VERIFICATION COMPLETE | assessment_id=%s submission_id=%s bidder_id=%s source_count=%s",
+                correlation_id, submission_id, bidder.bidder_id, verification_count,
+            )
+
+            stage = "configuration"
+            detail = self.repository.tender(submission.tender_id)
+            metadata = {r["requirement_code"]: r for r in detail["requirements"]}
+            if set(metadata) != set(context.requirement_codes) or set(metadata) != set(rules.requirement_weights):
+                raise AssessmentInputError("Database and prototype tender requirements differ")
+            if any(float(rules.requirement_weights[code]) != float(row["weight"])
+                   for code, row in metadata.items()):
+                raise AssessmentInputError("Database and prototype requirement weights differ")
+
+            stage = "compliance"
+            results = ComplianceEngine().evaluate(context, bidder, verification)
+            status_counts = Counter(result.status for result in results)
+            logger.info(
+                "COMPLIANCE COMPLETE | assessment_id=%s submission_id=%s compliant=%s "
+                "non_compliant=%s missing=%s needs_review=%s not_applicable=%s",
+                correlation_id, submission_id, status_counts["COMPLIANT"],
+                status_counts["NON_COMPLIANT"], status_counts["MISSING"],
+                status_counts["NEEDS_REVIEW"], status_counts["NOT_APPLICABLE"],
+            )
+
+            stage = "scoring"
+            assessment = ScoringEngine().assess(results, rules)
+            override_ids = [item.override_id for item in assessment.triggered_risk_overrides]
+            logger.info(
+                "SCORING/RISK COMPLETE | assessment_id=%s submission_id=%s score=%s "
+                "base_risk=%s final_risk=%s override_ids=%s",
+                correlation_id, submission_id, assessment.score, assessment.base_risk,
+                assessment.final_risk, ",".join(override_ids) or "none",
+            )
+            scores = {r.requirement_code: r for r in assessment.requirement_scores}
+            summary = AssessmentSummaryResponse(
+                **assessment.model_dump(), submission_id=submission_id, bidder_id=submission.bidder_id,
+                bidder_name=submission.bidder_name, tender_id=submission.tender_id,
+                assessed_at=datetime.now(timezone.utc), requirement_results=[PersistedRequirementResult(
+                    **result.model_dump(), title=metadata[result.requirement_code]["title"],
+                    configured_weight=scores[result.requirement_code].configured_weight,
+                    awarded_points=scores[result.requirement_code].awarded_points) for result in results])
+
+            stage = "persistence"
+            persisted = AssessmentPersistenceService(self.repository).persist(summary, verification)
+            logger.info(
+                "PERSISTENCE COMPLETE | assessment_id=%s submission_id=%s tender_id=%s bidder_id=%s",
+                correlation_id, submission_id, submission.tender_id, submission.bidder_id,
+            )
+            logger.info(
+                "ASSESSMENT COMPLETE | assessment_id=%s submission_id=%s score=%s final_risk=%s "
+                "duration_ms=%.1f",
+                correlation_id, submission_id, persisted.score, persisted.final_risk,
+                (perf_counter() - started) * 1000,
+            )
+            return persisted
+        except Exception as exc:
+            logger.error(
+                "ASSESSMENT FAILED | assessment_id=%s submission_id=%s stage=%s "
+                "error_type=%s duration_ms=%.1f",
+                correlation_id, submission_id, stage, type(exc).__name__,
+                (perf_counter() - started) * 1000,
+            )
+            raise
 
     def comparison(self, tender_id):
         bidders = []

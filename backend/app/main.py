@@ -8,30 +8,28 @@ from starlette.concurrency import run_in_threadpool
 
 from app.api.v1 import api_router
 from app.core.config import get_settings
+from app.core.logging import configure_logging
 from app.db.oracle import close_pool, database_is_healthy, initialize_pool
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bidguard.runtime")
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings = get_settings()
-    logger.info("Starting %s", settings.app_name)
+    logger.info("APPLICATION START | app=%s environment=%s", settings.app_name, settings.app_env)
     initialize_pool(settings)
     try:
         yield
     finally:
         close_pool()
-        logger.info("Stopped %s", settings.app_name)
+        logger.info("APPLICATION STOP | app=%s", settings.app_name)
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(settings)
     application = FastAPI(
         title=settings.app_name,
         version="0.1.0",
