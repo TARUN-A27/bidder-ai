@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from time import perf_counter
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from starlette.concurrency import run_in_threadpool
@@ -26,7 +28,7 @@ from app.services.ingestion.errors import (
 from app.services.ingestion.ingestion_service import SubmissionIngestionService
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bidguard.ingestion")
 router = APIRouter(prefix="/tenders/{tender_id}/submissions", tags=["submission ingestion"])
 Service = Annotated[SubmissionIngestionService, Depends(get_submission_ingestion_service)]
 
@@ -41,13 +43,38 @@ async def import_zip(
     bidder_metadata: Annotated[str | None, Form()] = None,
 ) -> SubmissionIngestionResponse:
     package: CollectedPackage | None = None
+    import_id = str(uuid4())
+    started = perf_counter()
+    logger.info(
+        "IMPORT START | import_id=%s import_type=zip tender_id=%s archive=%s",
+        import_id, tender_id, file.filename or "unknown",
+    )
     try:
         package = await SubmissionPackageCollector(settings).collect_zip(file, bidder_metadata)
+        logger.info(
+            "IMPORT VALIDATION COMPLETE | import_id=%s import_type=zip tender_id=%s "
+            "bidder_code=%s file_count=%s",
+            import_id, tender_id, package.bidder.bidder_reference or "unknown",
+            len(package.documents),
+        )
         result = await run_in_threadpool(service.ingest, tender_id, package)
         if result.duplicate_import:
             response.status_code = status.HTTP_200_OK
+        logger.info(
+            "IMPORT COMPLETE | import_id=%s import_type=zip tender_id=%s submission_id=%s "
+            "bidder_id=%s document_count=%s duplicate=%s duration_ms=%.1f",
+            import_id, tender_id, result.submission_id, result.bidder_id,
+            result.document_count, result.duplicate_import,
+            (perf_counter() - started) * 1000,
+        )
         return result
     except Exception as exc:
+        logger.error(
+            "IMPORT FAILED | import_id=%s import_type=zip tender_id=%s error_type=%s "
+            "duration_ms=%.1f",
+            import_id, tender_id, type(exc).__name__,
+            (perf_counter() - started) * 1000,
+        )
         _raise_http_error(exc)
         raise
     finally:
@@ -67,15 +94,40 @@ async def import_files(
     document_manifest: Annotated[str | None, Form(description="Optional manifest JSON")] = None,
 ) -> SubmissionIngestionResponse:
     package: CollectedPackage | None = None
+    import_id = str(uuid4())
+    started = perf_counter()
+    logger.info(
+        "IMPORT START | import_id=%s import_type=multi_file tender_id=%s file_count=%s",
+        import_id, tender_id, len(files),
+    )
     try:
         package = await SubmissionPackageCollector(settings).collect_files(
             files, bidder_profile, document_manifest
         )
+        logger.info(
+            "IMPORT VALIDATION COMPLETE | import_id=%s import_type=multi_file tender_id=%s "
+            "bidder_code=%s file_count=%s",
+            import_id, tender_id, package.bidder.bidder_reference or "unknown",
+            len(package.documents),
+        )
         result = await run_in_threadpool(service.ingest, tender_id, package)
         if result.duplicate_import:
             response.status_code = status.HTTP_200_OK
+        logger.info(
+            "IMPORT COMPLETE | import_id=%s import_type=multi_file tender_id=%s submission_id=%s "
+            "bidder_id=%s document_count=%s duplicate=%s duration_ms=%.1f",
+            import_id, tender_id, result.submission_id, result.bidder_id,
+            result.document_count, result.duplicate_import,
+            (perf_counter() - started) * 1000,
+        )
         return result
     except Exception as exc:
+        logger.error(
+            "IMPORT FAILED | import_id=%s import_type=multi_file tender_id=%s error_type=%s "
+            "duration_ms=%.1f",
+            import_id, tender_id, type(exc).__name__,
+            (perf_counter() - started) * 1000,
+        )
         _raise_http_error(exc)
         raise
     finally:
@@ -98,5 +150,4 @@ def _raise_http_error(exc: Exception) -> None:
         raise HTTPException(400, detail={"code": type(exc).__name__, "message": str(exc)}) from exc
     if isinstance(exc, DatabaseUnavailableError):
         raise HTTPException(503, detail={"code": "DATABASE_UNAVAILABLE", "message": "Database is unavailable"}) from exc
-    logger.exception("Unexpected submission ingestion failure")
     raise HTTPException(500, detail={"code": "INGESTION_FAILED", "message": "Submission could not be ingested"}) from exc

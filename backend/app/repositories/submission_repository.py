@@ -17,7 +17,7 @@ from app.services.ingestion.errors import (
 )
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bidguard.database")
 BIDDER_NAMESPACE = uuid.UUID("9b488b62-55bc-4bc8-9a39-dad8abc969d5")
 SUBMISSION_NAMESPACE = uuid.UUID("825b1dde-c6ee-4502-a90a-9d477424248a")
 DOCUMENT_NAMESPACE = uuid.UUID("ce9f2b74-f912-4f41-817d-5380b94594ba")
@@ -95,9 +95,15 @@ class OracleSubmissionRepository:
                         )
                         existing_documents = cursor.fetchall()
                         if existing_documents:
-                            return self._resolve_duplicate(
+                            duplicate = self._resolve_duplicate(
                                 bidder_id, submission_id, existing_documents, documents
                             )
+                            logger.info(
+                                "IMPORT PERSISTENCE COMPLETE | tender_id=%s submission_id=%s "
+                                "bidder_id=%s document_count=%s duplicate=true",
+                                tender_id, submission_id, bidder_id, len(documents),
+                            )
+                            return duplicate
 
                         if not existing:
                             cursor.execute(
@@ -144,6 +150,11 @@ class OracleSubmissionRepository:
                         )
                         finalize_storage(submission_id)
                     connection.commit()
+                    logger.info(
+                        "IMPORT PERSISTENCE COMPLETE | tender_id=%s submission_id=%s "
+                        "bidder_id=%s document_count=%s duplicate=false",
+                        tender_id, submission_id, bidder_id, len(documents),
+                    )
                     return PersistedPackage(
                         bidder_id, submission_id, False, document_ids, storage_paths
                     )
@@ -158,7 +169,10 @@ class OracleSubmissionRepository:
         ):
             raise
         except oracledb.Error as exc:
-            logger.exception("Oracle submission package persistence failed")
+            logger.error(
+                "IMPORT PERSISTENCE FAILED | tender_id=%s bidder_code=%s error_type=%s",
+                tender_id, bidder.bidder_reference or "unknown", type(exc).__name__,
+            )
             raise DatabaseUnavailableError("Database operation failed") from exc
 
     @staticmethod

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import timezone
 from uuid import uuid4
 
@@ -9,6 +10,9 @@ import oracledb
 from app.db.oracle import acquire_connection
 from app.schemas.assessment import AssessmentSummaryResponse, SubmissionResponse
 from app.services.assessment.errors import AssessmentInputError, AssessmentNotFoundError
+
+
+logger = logging.getLogger("bidguard.database")
 
 
 def rows(cursor):
@@ -175,6 +179,17 @@ class AssessmentRepository:
                         tender_id=summary.tender_id, submission_id=summary.submission_id,
                         entity_id=assessment_id, details=json.dumps(payload, sort_keys=True, allow_nan=False))
                 connection.commit()
-            except Exception:
+                logger.info(
+                    "ASSESSMENT PERSISTENCE COMPLETE | submission_id=%s tender_id=%s "
+                    "bidder_id=%s requirement_count=%s",
+                    summary.submission_id, summary.tender_id, summary.bidder_id, len(codes),
+                )
+            except Exception as exc:
                 connection.rollback()
+                logger.error(
+                    "ASSESSMENT PERSISTENCE FAILED | submission_id=%s tender_id=%s "
+                    "bidder_id=%s error_type=%s",
+                    summary.submission_id, summary.tender_id, summary.bidder_id,
+                    type(exc).__name__,
+                )
                 raise
