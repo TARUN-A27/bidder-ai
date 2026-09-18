@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bidder Comparison — BidGuard AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/previous-performance.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <a href="dashboard.html" class="brand">
+      <div class="brand-seal">BG</div>
+      <div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div>
+    </a>
+    <div class="officer-menu">
+      <button class="officer-btn" data-officer-btn>
+        <div class="officer-avatar">RS</div>
+        <div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div>
+      </button>
+      <div class="officer-dropdown" data-officer-dropdown>
+        <a href="#">My profile</a>
+        <a href="#">Notification settings</a>
+        <a href="index.html" data-logout>Sign out</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="tabstrip-wrap">
+  <div class="container">
+    <nav class="tabstrip">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="tender-detail.html">Tenders</a>
+      <a href="comparison.html" class="active">Bidder comparison</a>
+      <a href="decision.html">Audit log</a>
+    </nav>
+  </div>
+</div>
+
+<main>
+  <div class="container">
+
+    <div class="page-head">
+      <div class="title-row">
+        <div>
+          <span class="case-id">TENDER · GEM/2026/B/41127 — Ruggedised Field Laptops</span>
+          <h1>Bidder comparison</h1>
+        </div>
+      </div>
+    </div>
+
+    <div class="stepper mb-24">
+      <div class="step done"><span class="num">✓</span> Tender detail</div>
+      <div class="step done"><span class="num">✓</span> Upload bidder</div>
+      <div class="step done"><span class="num">✓</span> Verification</div>
+      <div class="step current"><span class="num">4</span> Comparison</div>
+      <div class="step"><span class="num">5</span> Investigation</div>
+      <div class="step"><span class="num">6</span> Decision</div>
+    </div>
+
+    <div class="grid grid-4 mb-24">
+      <div class="stat-tile accent-navy"><div class="num">128</div><div class="label eyebrow">Total bidders</div></div>
+      <div class="stat-tile accent-green"><div class="num">78</div><div class="label eyebrow">Low risk</div></div>
+      <div class="stat-tile accent-amber"><div class="num">34</div><div class="label eyebrow">Medium risk</div></div>
+      <div class="stat-tile accent-red"><div class="num">16</div><div class="label eyebrow">High risk</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Decision support — not automatic disqualification</h3>
+        <span class="badge badge-ink">Sorted by score</span>
+      </div>
+      <p class="text-muted" style="font-size:13px;">Ranking is provided to help prioritise review. It does not by itself declare a winning bidder — the Procurement Officer makes that determination after reviewing evidence.</p>
+
+      <div class="search-row">
+        <input type="search" id="bidderSearch" placeholder="Search bidder name…">
+        <select id="riskFilter">
+          <option value="">All risk levels</option>
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table id="comparisonTable">
+          <thead>
+            <tr>
+              <th><button data-sort="name">Bidder <span>↕</span></button></th>
+              <th><button data-sort="score">Score <span>↕</span></button></th>
+              <th><button data-sort="risk">Risk <span>↕</span></button></th>
+              <th>Discrepancies</th>
+              <th>Status</th>
+              <th>Previous performance</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-name="ABC Technologies" data-score="96" data-risk="LOW">
+              <td><strong>ABC Technologies Pvt Ltd</strong></td>
+              <td class="mono">96</td>
+              <td><span class="badge badge-green">Low</span></td>
+              <td>None</td>
+              <td><span class="stamp stamp-verified stamp-sm">Verified</span></td>
+              <td><button type="button" class="pp-table-btn" data-pp-open data-pp-bidder="A" data-pp-name="ABC Technologies Pvt Ltd">📊 Previous performance</button></td>
+              <td><a href="investigation.html" class="btn btn-sm">Investigate →</a></td>
+            </tr>
+            <tr data-name="PQR Solutions" data-score="91" data-risk="LOW">
+              <td><strong>PQR Solutions</strong></td>
+              <td class="mono">91</td>
+              <td><span class="badge badge-green">Low</span></td>
+              <td>1 minor</td>
+              <td><span class="stamp stamp-verified stamp-sm">Verified</span></td>
+              <td><button type="button" class="pp-table-btn" data-pp-open data-pp-bidder="PQR" data-pp-name="PQR Solutions">📊 Previous performance</button></td>
+              <td><a href="investigation.html" class="btn btn-sm">Investigate →</a></td>
+            </tr>
+            <tr data-name="XYZ Enterprises" data-score="84" data-risk="MEDIUM">
+              <td><strong>XYZ Enterprises</strong></td>
+              <td class="mono">84</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+              <td>2 issues</td>
+              <td><span class="stamp stamp-review stamp-sm">Review</span></td>
+              <td><button type="button" class="pp-table-btn" data-pp-open data-pp-bidder="B" data-pp-name="XYZ Enterprises">📊 Previous performance</button></td>
+              <td><a href="investigation.html" class="btn btn-sm">Investigate →</a></td>
+            </tr>
+            <tr data-name="DEF Systems" data-score="69" data-risk="MEDIUM">
+              <td><strong>DEF Systems</strong></td>
+              <td class="mono">69</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+              <td>3 issues</td>
+              <td><span class="stamp stamp-review stamp-sm">Review</span></td>
+              <td><button type="button" class="pp-table-btn" data-pp-open data-pp-bidder="DEF" data-pp-name="DEF Systems">📊 Previous performance</button></td>
+              <td><a href="investigation.html" class="btn btn-sm">Investigate →</a></td>
+            </tr>
+            <tr data-name="LMN Corp" data-score="45" data-risk="HIGH">
+              <td><strong>LMN Corp</strong></td>
+              <td class="mono">45</td>
+              <td><span class="badge badge-red">High</span></td>
+              <td>5 issues</td>
+              <td><span class="stamp stamp-discrepancy stamp-sm">Discrepancy</span></td>
+              <td><button type="button" class="pp-table-btn" data-pp-open data-pp-bidder="C" data-pp-name="LMN Corp">📊 Previous performance</button></td>
+              <td><a href="investigation.html" class="btn btn-sm">Investigate →</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>BIDGUARD AI · PROTOTYPE BUILD</span>
+    <span>ALL DATA SHOWN IS SAMPLE / MOCK DATA</span>
+  </div>
+</footer>
+
+<!-- Previous Performance drawer (reusable — see js/previous-performance.js) -->
+<div class="drawer-overlay" id="ppOverlay">
+  <aside class="drawer" role="dialog" aria-label="Previous performance">
+    <div class="drawer-head">
+      <div>
+        <h3>Previous Performance</h3>
+        <div class="sub" id="ppBidderName">—</div>
+        <div class="sub2">Historical Procurement Record</div>
+      </div>
+      <button class="drawer-close" id="ppClose" aria-label="Close">✕</button>
+    </div>
+    <div class="drawer-body" id="ppBody">
+      <!-- populated by js/previous-performance.js -->
+    </div>
+    <div class="drawer-footer">Historical performance is advisory only. Final procurement decisions remain with the Procurement Officer.</div>
+  </aside>
+</div>
+
+<script src="js/main.js"></script>
+<script src="js/comparison.js"></script>
+<script src="js/previous-performance.js"></script>
+</body>
+</html>

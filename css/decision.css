@@ -1,0 +1,10 @@
+.decision-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-top:20px; }
+.decision-actions .btn{ flex:1; min-width:160px; padding-top:16px; padding-bottom:16px; font-size:14px; }
+
+.decision-result{
+  display:none; text-align:center; padding:36px 20px; border:var(--line-w-thick) solid var(--border);
+  background:var(--surface); margin-top:24px;
+}
+.decision-result.show{ display:block; }
+
+.char-count{ text-align:right; font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); margin-top:4px; }

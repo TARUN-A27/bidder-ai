@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — BidGuard AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+
+<div class="login-shell">
+
+  <div class="login-hero">
+    <div class="hero-top">
+      <div class="hero-seal">BG</div>
+      <div class="hero-title">BidGuard AI<small>AI-Powered Bid Compliance Platform</small></div>
+    </div>
+
+    <div class="hero-mid">
+      <div class="eyebrow">Procurement officer access</div>
+      <h1>Evidence-backed compliance decisions, in one auditable workflow.</h1>
+      <p>Every requirement extracted, every document cross-verified, every discrepancy shown with evidence. You always make the final call.</p>
+
+      <div class="hero-stamps">
+        <span class="stamp stamp-sm">Explainable AI</span>
+        <span class="stamp stamp-sm">Human-in-the-loop</span>
+        <span class="stamp stamp-sm">Fully audited</span>
+      </div>
+    </div>
+
+    <div class="hero-ledger">
+      <div>SYSTEM STATUS &mdash; OPERATIONAL</div>
+      <div>LAST SYNC &mdash; TODAY, 09:12 IST</div>
+      <div>ACTIVE TENDERS &mdash; 12 &nbsp;|&nbsp; BIDDERS UNDER REVIEW &mdash; 128</div>
+    </div>
+  </div>
+
+  <div class="login-panel">
+    <div class="login-card">
+      <div class="card">
+        <h2>Officer sign in</h2>
+        <p class="sub">Access your procurement case files and verification queue.</p>
+
+        <div class="role-note">
+          <span>👤</span> Single-role access — every bidder record, verification and decision on BidGuard AI is entered and validated by you, the Procurement Officer.
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="empId">Employee ID</label>
+            <input type="text" id="empId" name="empId" placeholder="BG-OFC-2291" value="BG-OFC-2291" autocomplete="username">
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="••••••••••" value="demo-password" autocomplete="current-password">
+          </div>
+          <div class="flex-between mb-24">
+            <label class="checkbox-row"><input type="checkbox" checked> Remember this device</label>
+            <a href="#" style="font-size:12.5px; color:var(--navy); text-decoration:underline;">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Sign in to dashboard →</button>
+        </form>
+
+        <div class="demo-note">
+          DEMO MODE — form is frontend-only. Any credentials will sign you in as <strong>Procurement Officer</strong> and route to the dashboard.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/main.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Bidder Documents — BidGuard AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/upload.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <a href="dashboard.html" class="brand">
+      <div class="brand-seal">BG</div>
+      <div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div>
+    </a>
+    <div class="officer-menu">
+      <button class="officer-btn" data-officer-btn>
+        <div class="officer-avatar">RS</div>
+        <div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div>
+      </button>
+      <div class="officer-dropdown" data-officer-dropdown>
+        <a href="#">My profile</a>
+        <a href="#">Notification settings</a>
+        <a href="index.html" data-logout>Sign out</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="tabstrip-wrap">
+  <div class="container">
+    <nav class="tabstrip">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="tender-detail.html" class="active">Tenders</a>
+      <a href="comparison.html">Bidder comparison</a>
+      <a href="decision.html">Audit log</a>
+    </nav>
+  </div>
+</div>
+
+<main>
+  <div class="container">
+
+    <div class="page-head">
+      <div class="title-row">
+        <div>
+          <span class="case-id">TENDER · GEM/2026/B/41127 — Ruggedised Field Laptops</span>
+          <h1>Upload bidder documents</h1>
+        </div>
+      </div>
+    </div>
+
+    <div class="stepper mb-24">
+      <div class="step done"><span class="num">✓</span> Tender detail</div>
+      <div class="step current"><span class="num">2</span> Upload bidder</div>
+      <div class="step"><span class="num">3</span> Verification</div>
+      <div class="step"><span class="num">4</span> Comparison</div>
+      <div class="step"><span class="num">5</span> Investigation</div>
+      <div class="step"><span class="num">6</span> Decision</div>
+    </div>
+
+    <div class="grid grid-sidebar">
+      <section class="stack">
+
+        <div class="card">
+          <div class="card-header"><h3>Bidder identity</h3></div>
+          <div class="grid grid-2">
+            <div class="field mb-0">
+              <label for="bidderName">Bidder / company name</label>
+              <input type="text" id="bidderName" value="ABC Technologies Pvt Ltd">
+            </div>
+            <div class="field mb-0">
+              <label for="bidderCode">Bid reference</label>
+              <input type="text" id="bidderCode" value="B-41127-014" class="mono">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Drop documents</h3></div>
+          <div class="dropzone" id="dropzone">
+            <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+            <h3>Drag &amp; drop PDF / image files here</h3>
+            <p>or click to browse — GST, PAN, Udyam, ITR, OEM, MII declaration, etc.</p>
+            <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png">
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </div>
+
+      </section>
+
+      <aside class="stack">
+        <div class="card">
+          <div class="card-header">
+            <h3>Expected documents</h3>
+            <span class="badge badge-amber" id="checklistBadge">0 / 6 uploaded</span>
+          </div>
+          <div class="doc-checklist" id="checklist">
+            <div class="doc-row" data-doc="GST Certificate"><div class="state">–</div><div class="name">GST certificate</div><span class="req">Required</span></div>
+            <div class="doc-row" data-doc="PAN Card"><div class="state">–</div><div class="name">PAN card</div><span class="req">Required</span></div>
+            <div class="doc-row" data-doc="Udyam Certificate"><div class="state">–</div><div class="name">Udyam / MSME certificate</div><span class="req">Required</span></div>
+            <div class="doc-row" data-doc="ITR"><div class="state">–</div><div class="name">Income tax return (latest)</div><span class="req">Required</span></div>
+            <div class="doc-row" data-doc="OEM Authorization"><div class="state">–</div><div class="name">OEM authorization letter</div><span class="req">Required</span></div>
+            <div class="doc-row" data-doc="MII Declaration"><div class="state">–</div><div class="name">Make in India declaration</div><span class="req">Required</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Before you continue</h3></div>
+          <p class="text-muted" style="font-size:13px;">OCR and document AI will classify each file automatically. Illegible or mismatched files will be flagged for reupload before verification begins.</p>
+          <a href="processing.html" class="btn btn-primary btn-block" id="startVerification">Start verification →</a>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>BIDGUARD AI · PROTOTYPE BUILD</span>
+    <span>ALL DATA SHOWN IS SAMPLE / MOCK DATA</span>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/upload.js"></script>
+</body>
+</html>

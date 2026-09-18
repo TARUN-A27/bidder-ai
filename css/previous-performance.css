@@ -1,0 +1,15 @@
+/* ============================================================
+   PREVIOUS-PERFORMANCE.CSS
+   Page-specific styling for the "Previous Performance" trigger
+   button. The drawer itself (.drawer-overlay, .drawer, .pp-*)
+   lives in css/components.css since it is shared across pages.
+   ============================================================ */
+
+.pp-table-btn{
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:var(--font-cond); font-weight:600; font-size:11.5px;
+  padding:6px 12px; border-radius:999px; border:1px solid var(--border);
+  background:var(--surface-alt); color:var(--ink-soft); cursor:pointer;
+  white-space:nowrap;
+}
+.pp-table-btn:hover{ border-color:var(--brass); color:var(--brass-dark); background:var(--brass-bg); }
