@@ -15,9 +15,15 @@ from fastapi.testclient import TestClient
 from app.core.config import get_settings
 from app.main import create_app
 from app.repositories.assessment_repository import AssessmentRepository
+from script_config import DATA_ROOT
 
+DATASET_ROOT = DATA_ROOT
 
-DATASET_ROOT = Path("/home/tarun/TARUN/projects/test-sih-docs")
+if not DATASET_ROOT.is_dir():
+    raise RuntimeError(
+        f"Dataset root does not exist: {DATASET_ROOT}. "
+        "Set BIDGUARD_DATA_ROOT to the synthetic dataset directory."
+    )
 BIDDER_DIRECTORIES = {
     "BIDDER_A": DATASET_ROOT / "bidders/Bidder_A_Low_Risk",
     "BIDDER_B": DATASET_ROOT / "bidders/Bidder_B_High_Risk",
@@ -193,3 +199,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
