@@ -2,9 +2,9 @@
   display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;
 }
 .search-row input[type="search"]{
-  flex:1; min-width:220px; padding:11px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface);
+  flex:1; min-width:220px; padding:11px 14px; border:1px solid var(--border-strong); border-radius:var(--radius-sm); background:var(--surface);
 }
-.search-row select{ padding:11px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); }
+.search-row select{ padding:11px 12px; border:1px solid var(--border-strong); border-radius:var(--radius-sm); background:var(--surface); }
 
 .activity-item{ display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--paper-dim); font-size:13px; }
 .activity-item:last-child{ border-bottom:none; }

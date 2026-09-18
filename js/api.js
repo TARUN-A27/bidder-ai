@@ -119,7 +119,7 @@
   const riskClasses = {
     LOW: 'badge badge-green',
     MEDIUM: 'badge badge-amber',
-    HIGH: 'badge badge-red',
+    HIGH: 'badge badge-orange',
     CRITICAL: 'badge badge-critical',
   };
 

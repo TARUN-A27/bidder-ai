@@ -9,9 +9,22 @@ document.addEventListener('click', (e) => {
   if (!btn || !dropdown) return;
 
   if (btn.contains(e.target)) {
-    dropdown.classList.toggle('open');
+    const open = dropdown.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(open));
   } else if (!dropdown.contains(e.target)) {
     dropdown.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  const btn = document.querySelector('[data-officer-btn]');
+  const dropdown = document.querySelector('[data-officer-dropdown]');
+  if (btn && dropdown?.classList.contains('open')) {
+    dropdown.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.focus();
   }
 });
 
@@ -48,6 +61,12 @@ window.bindModal = bindModal;
 
 // ---- log out confirmation ----
 document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('page-ready');
+  const officerButton = document.querySelector('[data-officer-btn]');
+  if (officerButton) {
+    officerButton.setAttribute('aria-haspopup', 'menu');
+    officerButton.setAttribute('aria-expanded', 'false');
+  }
   const logoutLink = document.querySelector('[data-logout]');
   if (logoutLink) {
     logoutLink.addEventListener('click', (e) => {
