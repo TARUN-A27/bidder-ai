@@ -76,6 +76,7 @@
 
       <div class="bidder-actions">
         <button type="button" class="pp-trigger" id="previousPerformance" data-pp-open>Previous Performance</button>
+        <button type="button" class="pp-trigger" id="aiPerformanceInsight" data-ai-insight-open>AI Performance Insight</button>
         <div class="risk-block">
           <span class="risk-label">Final risk</span>
           <span id="riskStamp" class="stamp stamp-review">Pending</span>
@@ -105,11 +106,12 @@
         <span class="metric-note">Review, missing or failed</span>
       </article>
       <article class="metric-card metric-neutral">
-        <span class="metric-label">Evidence sources</span>
-        <strong id="metricSources">—</strong>
-        <span class="metric-note">Unique references cited</span>
+        <span class="metric-label">Human review items</span>
+        <strong id="metricHumanReview">—</strong>
+        <span class="metric-note">Explicit backend review flags</span>
       </article>
     </section>
+    <section class="status-overview" id="statusOverview" aria-label="Requirement status overview"></section>
 
     <div class="workspace-tabs" role="tablist" aria-label="Investigation views">
       <button class="active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
@@ -154,6 +156,7 @@
             </div>
             <div class="override-panel">
               <span class="override-title">Triggered risk overrides</span>
+              <p id="overrideExplanation" class="override-explanation">Final risk equals base risk unless a backend mandatory override is triggered.</p>
               <ul id="overrideList"></ul>
             </div>
           </article>
@@ -181,7 +184,7 @@
 
 <footer class="site-footer">
   <div class="container">
-    <span>BIDGUARD AI · PROTOTYPE BUILD</span>
+    <span>BIDGUARD AI · SIH26100</span>
     <span>AI ASSISTS · OFFICER DECIDES</span>
   </div>
 </footer>
@@ -192,7 +195,7 @@
       <div>
         <h3 id="ppTitle">Previous Performance</h3>
         <div class="sub" id="ppBidderName">—</div>
-        <div class="sub2">Historical Procurement Record</div>
+        <div class="sub2" id="ppSubtitle">Synthetic demo performance history</div>
       </div>
       <button type="button" class="drawer-close" id="ppClose" aria-label="Close Previous Performance">×</button>
     </div>

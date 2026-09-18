@@ -27,3 +27,6 @@
 @keyframes scan{ 50%,100%{ transform:translateX(100%); } }
 
 .processing-summary{ display:flex; justify-content:space-between; align-items:center; margin-top:16px; font-family:var(--font-mono); font-size:12.5px; color:var(--ink-soft); }
+.progress-track.active .progress-fill{width:32%;animation:indeterminate 1.45s var(--ease-standard) infinite;}
+.progress-track.complete .progress-fill{width:100%;animation:none;background:var(--green);}
+@keyframes indeterminate{0%{transform:translateX(-110%)}100%{transform:translateX(320%)}}

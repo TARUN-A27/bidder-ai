@@ -16,14 +16,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  document.querySelectorAll('[data-tab]').forEach((button) => button.addEventListener('click', () => {
-    document.querySelectorAll('[data-tab]').forEach((item) => {
+  const tabButtons = Array.from(document.querySelectorAll('[data-tab]'));
+  function selectTab(button) {
+    tabButtons.forEach((item) => {
       const active = item === button;
       item.classList.toggle('active', active);
       item.setAttribute('aria-selected', String(active));
+      item.tabIndex = active ? 0 : -1;
     });
-    document.querySelectorAll('.tabpanel').forEach((panel) => panel.classList.toggle('active', panel.id === `panel-${button.dataset.tab}`));
-  }));
+    document.querySelectorAll('.tabpanel').forEach((panel) => {
+      const active = panel.id === `panel-${button.dataset.tab}`;
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+  }
+  tabButtons.forEach((button, index) => {
+    const panel = document.getElementById(`panel-${button.dataset.tab}`);
+    button.id = `tab-${button.dataset.tab}`;
+    button.setAttribute('aria-controls', panel.id);
+    panel.setAttribute('aria-labelledby', button.id);
+    button.tabIndex = index === 0 ? 0 : -1;
+    if (index > 0) panel.hidden = true;
+    button.addEventListener('click', () => selectTab(button));
+    button.addEventListener('keydown', (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      let nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabButtons.length - 1 : index + (event.key === 'ArrowRight' ? 1 : -1);
+      nextIndex = (nextIndex + tabButtons.length) % tabButtons.length;
+      selectTab(tabButtons[nextIndex]);
+      tabButtons[nextIndex].focus();
+    });
+  });
 
   const statusClasses = {
     COMPLIANT: 'badge badge-green',
@@ -55,6 +78,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       metaItem('Sources', (item.source_references || []).join(', ') || 'Not provided', true),
       metaItem('Warnings', (item.warnings || []).join(' ') || 'None', true),
     ]);
+    const detail = el('details', { className: 'requirement-detail' }, [
+      el('summary', { text: 'Review points, sources and warnings' }),
+      meta,
+    ]);
     return el('article', { className: `requirement-card status-${item.status}` }, [
       el('div', { className: 'requirement-card-head' }, [
         el('div', {}, [
@@ -64,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         el('span', { className: statusClasses[item.status] || 'badge badge-ink', text: statusLabels[item.status] || item.status }),
       ]),
       el('p', { text: item.reason || 'No explanation returned.' }),
-      meta,
+      detail,
     ]);
   }
 
@@ -107,11 +134,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!entries.length) {
       card.append(el('p', { className: 'text-muted', text: 'No structured evidence returned.' }));
     } else {
-      entries.forEach(([key, value]) => card.append(evidenceRow(key.replaceAll('_', ' '), typeof value === 'object' ? JSON.stringify(value) : String(value))));
+      entries.forEach(([key, value]) => card.append(evidenceValue(key, value)));
     }
     card.append(evidenceRow('Sources', (item.source_references || []).join(', ') || 'Not provided'));
     if ((item.warnings || []).length) card.append(evidenceRow('Warnings', item.warnings.join(' ')));
     return card;
+  }
+
+  function evidenceValue(key, value, depth = 0) {
+    const label = String(key).replaceAll('_', ' ');
+    if (value === null || typeof value !== 'object') {
+      const display = value === null ? 'Not provided' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value);
+      return evidenceRow(label, display);
+    }
+    const array = Array.isArray(value);
+    const entries = array ? value.map((item, index) => [String(index + 1), item]) : Object.entries(value);
+    const details = el('details', { className: 'evidence-tree' }, [
+      el('summary', {}, [el('span', { text: label }), el('span', { text: `${entries.length} ${array ? 'items' : 'fields'}` })]),
+    ]);
+    if (depth === 0 && entries.length <= 4) details.open = true;
+    const children = el('div', { className: 'evidence-tree-children' });
+    if (!entries.length) children.append(el('p', { className: 'text-muted', text: array ? 'Empty list' : 'Empty object' }));
+    entries.forEach(([childKey, childValue]) => children.append(evidenceValue(childKey, childValue, depth + 1)));
+    details.append(children);
+    return details;
   }
 
   function evidenceRow(label, value) {
@@ -132,7 +178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const risk = String(assessment.final_risk || '').toUpperCase();
     const compliant = requirementResults.filter((item) => item.status === 'COMPLIANT').length;
     const attention = requirementResults.filter((item) => ['NEEDS_REVIEW', 'NON_COMPLIANT', 'MISSING'].includes(item.status)).length;
-    const sourceSet = new Set(requirementResults.flatMap((item) => item.source_references || []).filter(Boolean));
+    const humanReview = requirementResults.filter((item) => item.requires_human_review).length;
 
     document.getElementById('bidderName').textContent = submission.bidder_name;
     document.getElementById('submissionCode').textContent = `TENDER · ${tenderId} · SUBMISSION ${submission.submission_id}`;
@@ -155,12 +201,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('metricTotal').textContent = String(requirementResults.length);
     document.getElementById('metricCompliant').textContent = String(compliant);
     document.getElementById('metricAttention').textContent = String(attention);
-    document.getElementById('metricSources').textContent = String(sourceSet.size);
+    document.getElementById('metricHumanReview').textContent = String(humanReview);
+
+    const statusOverview = document.getElementById('statusOverview');
+    clear(statusOverview);
+    ['COMPLIANT', 'NEEDS_REVIEW', 'NON_COMPLIANT', 'MISSING', 'NOT_APPLICABLE'].forEach((status) => {
+      const value = requirementResults.filter((item) => item.status === status).length;
+      statusOverview.append(el('div', { className: 'status-summary' }, [
+        el('span', { className: statusClasses[status], text: statusLabels[status] }),
+        el('strong', { text: String(value) }),
+      ]));
+    });
 
     const overrideList = document.getElementById('overrideList');
     clear(overrideList);
-    (assessment.triggered_risk_overrides || []).forEach((override) => {
-      overrideList.append(el('li', { text: `${override.override_id}: ${override.reason} (minimum ${override.minimum_risk})` }));
+    const overrides = assessment.triggered_risk_overrides || [];
+    document.getElementById('overrideExplanation').textContent = overrides.length
+      ? `The backend resolved final risk as ${assessment.final_risk} after applying mandatory minimum-risk overrides to base risk ${assessment.base_risk}.`
+      : 'No mandatory risk override was triggered; the backend final risk matches its resolved base risk.';
+    overrides.forEach((override) => {
+      overrideList.append(el('li', {}, [
+        el('strong', { text: `${override.override_id} · minimum ${override.minimum_risk}` }),
+        el('span', { text: override.reason }),
+        el('small', { text: `Related requirements: ${(override.related_requirement_codes || []).join(', ') || 'Not provided'}` }),
+      ]));
     });
     if (!overrideList.children.length) overrideList.append(el('li', { text: 'No risk overrides triggered.' }));
 
@@ -185,6 +249,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ppButton = document.getElementById('previousPerformance');
     ppButton.dataset.ppBidder = performanceKey(submission.bidder_name);
     ppButton.dataset.ppName = submission.bidder_name;
+    const insightButton = document.getElementById('aiPerformanceInsight');
+    insightButton.dataset.ppBidder = performanceKey(submission.bidder_name);
+    insightButton.dataset.ppName = submission.bidder_name;
 
     state.hidden = true;
   } catch (error) {
