@@ -1,5 +1,5 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const { postMultipart } = window.BidGuardAPI;
+document.addEventListener('DOMContentLoaded', async () => {
+  const { get, postMultipart } = window.BidGuardAPI;
   const { params, page } = window.BidGuardNav;
   const { clear, el } = window.BidGuardUI;
   const tenderId = params().get('tender_id');
@@ -21,6 +21,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.getElementById('backLink').href = page('tender-detail.html', { tender_id: tenderId });
   document.getElementById('tenderNavLink').href = page('tender-detail.html', { tender_id: tenderId });
+  document.getElementById('comparisonNav').href = page('comparison.html', { tender_id: tenderId });
+  if (tenderId) {
+    try {
+      const tender = await get(`/tenders/${encodeURIComponent(tenderId)}`);
+      document.getElementById('tenderContext').textContent = `${tender.bid_number || tender.dataset_id || tender.tender_id} · ${tender.title}`;
+      document.getElementById('datasetId').value = tender.dataset_id || '';
+    } catch (_) {
+      document.getElementById('tenderContext').textContent = `TENDER · ${tenderId}`;
+    }
+  }
 
   function key(file) {
     return `${file.name}:${file.size}:${file.lastModified}`;
@@ -32,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     input.multiple = mode.value === 'files';
     input.accept = mode.value === 'zip' ? '.zip,application/zip' : '.pdf,application/pdf';
     document.getElementById('profileFields').hidden = mode.value === 'zip';
+    document.querySelectorAll('#profileFields input, #profileFields textarea').forEach((field) => { field.disabled = mode.value === 'zip'; });
     document.getElementById('fileHelp').textContent = mode.value === 'zip'
       ? 'Select one ZIP containing bidder_profile.json and bidder PDFs.'
       : 'Select one or more PDFs. Bidder name and PAN reference are required.';
@@ -126,13 +137,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const profile = {
         bidder_name: document.getElementById('bidderName').value.trim(),
         pan_reference: document.getElementById('panReference').value.trim(),
+        is_synthetic: document.getElementById('isSynthetic').checked,
+        mse_claimed: document.getElementById('mseClaimed').checked,
+        startup_claimed: document.getElementById('startupClaimed').checked,
+        nsic_claimed: document.getElementById('nsicClaimed').checked,
+        emd_exemption_claimed: document.getElementById('emdExemptionClaimed').checked,
       };
-      const bidderReference = document.getElementById('bidderReference').value.trim();
-      if (bidderReference) profile.bidder_reference = bidderReference;
+      [
+        ['dataset_id', 'datasetId'], ['bidder_reference', 'bidderReference'], ['entity_type', 'entityType'],
+        ['registered_address', 'registeredAddress'], ['gst_reference', 'gstReference'], ['udyam_reference', 'udyamReference'],
+        ['offered_make', 'offeredMake'], ['offered_model', 'offeredModel'],
+      ].forEach(([field, id]) => {
+        const value = document.getElementById(id).value.trim();
+        if (value) profile[field] = value;
+      });
       data.append('bidder_profile', JSON.stringify(profile));
       path = `/tenders/${encodeURIComponent(tenderId)}/submissions/import-files`;
     }
     submit.disabled = true;
+    form.setAttribute('aria-busy', 'true');
     state.className = 'api-state';
     state.textContent = 'Uploading and validating bidder submission…';
     try {
@@ -145,10 +168,13 @@ document.addEventListener('DOMContentLoaded', () => {
       profileRow.classList.add('uploaded');
       profileRow.querySelector('.state').textContent = '✓';
       clear(result);
-      result.append(
-        el('p', { text: `${imported.bidder_name}: ${imported.document_count} stored document(s).` }),
-        el('p', { className: 'text-muted', text: (imported.warnings || []).join(' ') }),
-      );
+      result.append(el('p', { text: `${imported.bidder_name}: ${imported.document_count} stored document(s).` }));
+      const warnings = imported.warnings || [];
+      if (warnings.length) {
+        const list = el('ul', { className: 'import-warnings' });
+        warnings.forEach((warning) => list.append(el('li', { text: warning })));
+        result.append(el('div', { className: 'api-state', attrs: { role: 'status' } }, [el('strong', { text: 'Backend warnings' }), list]));
+      }
       if (imported.ready_for_assessment) result.append(el('a', {
         className: 'btn btn-primary', text: 'Run Assessment',
         href: page('processing.html', { tender_id: imported.tender_id, submission_id: imported.submission_id, bidder_id: imported.bidder_id }),
@@ -159,6 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.textContent = error.message || 'Import failed.';
     } finally {
       submit.disabled = false;
+      form.setAttribute('aria-busy', 'false');
     }
   });
 

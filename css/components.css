@@ -213,6 +213,7 @@ main{ padding-bottom: 64px; }
 .stamp-verified{ --stamp-color: var(--green-dark); --stamp-bg: var(--green-bg); }
 .stamp-discrepancy{ --stamp-color: var(--red-dark); --stamp-bg: var(--red-bg); }
 .stamp-pending{ --stamp-color: var(--amber-dark); --stamp-bg: var(--amber-bg); }
+.stamp-high{ --stamp-color:var(--orange-dark); --stamp-bg:var(--orange-bg); }
 .stamp-review{ --stamp-color:#333; --stamp-bg:#EFEFEF; }
 .stamp-approved{ --stamp-color: var(--green-dark); --stamp-bg: var(--green-bg); }
 .stamp-rejected{ --stamp-color: var(--red-dark); --stamp-bg: var(--red-bg); }
@@ -424,6 +425,8 @@ tbody tr.row-link{ cursor:pointer; }
 @keyframes shimmer{ 100%{ transform:translateX(100%); } }
 
 .pp-empty, .pp-error{ text-align:center; padding:40px 14px; color:var(--ink-soft); font-size:13.5px; }
+.ai-unavailable{border:1px solid var(--border-strong);border-left:3px solid #111;background:#FAFAFA;padding:18px;margin-bottom:20px;}
+.ai-unavailable h4{font-size:18px;margin:13px 0 7px;}.ai-unavailable p{color:var(--ink-soft);margin:0;}
 .pp-btn{
   font-family:var(--font-cond); font-weight:600; font-size:12px;
   padding:7px 14px; border-radius:999px; border:1px solid var(--border);

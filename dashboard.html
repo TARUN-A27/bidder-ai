@@ -7,20 +7,19 @@
 </head>
 <body>
 <header class="topbar"><div class="container"><a href="dashboard.html" class="brand"><div class="brand-seal">BG</div><div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div></a><div class="officer-menu"><button class="officer-btn" data-officer-btn><div class="officer-avatar">RS</div><div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div></button><div class="officer-dropdown" data-officer-dropdown><a href="index.html" data-logout>Sign out</a></div></div></div></header>
-<div class="tabstrip-wrap"><div class="container"><nav class="tabstrip"><a href="dashboard.html" class="active">Dashboard</a><a href="dashboard.html">Tenders</a><a href="comparison.html">Bidder comparison</a><a href="decision.html">Decision draft</a></nav></div></div>
+<div class="tabstrip-wrap"><div class="container"><nav class="tabstrip" aria-label="Primary navigation"><a href="dashboard.html" class="active" aria-current="page">Tender register</a></nav></div></div>
 <main><div class="container">
-  <div class="page-head"><div class="title-row"><div><span class="case-id">PROCUREMENT WORKSPACE · LIVE DATA</span><h1>Tender dashboard</h1></div><span class="stamp stamp-verified stamp-sm">Backend connected</span></div></div>
-  <div class="grid grid-4 mb-24">
+  <div class="page-head"><div class="title-row"><div><span class="case-id">PROCUREMENT WORKSPACE · LIVE DATA</span><h1>Tender register</h1></div><span class="stamp stamp-review stamp-sm" id="backendStatus" role="status">Connecting to backend</span></div></div>
+  <div class="grid grid-3 mb-24">
     <div class="stat-tile accent-navy"><div class="num" id="tenderCount">—</div><div class="label eyebrow">Available tenders</div></div>
     <div class="stat-tile accent-green"><div class="num" id="totalSubmissions">—</div><div class="label eyebrow">Bidder submissions</div></div>
-    <div class="stat-tile accent-amber"><div class="num" id="openWorkspaces">—</div><div class="label eyebrow">Tender workspaces</div></div>
-    <div class="stat-tile accent-red"><div class="num" id="nearestClose">—</div><div class="label eyebrow">Next closing</div></div>
+    <div class="stat-tile accent-amber"><div class="num" id="nearestClose">—</div><div class="label eyebrow">Next closing</div></div>
   </div>
   <div class="grid grid-sidebar">
     <section><div class="card"><div class="card-header"><h3>Available tenders</h3><span class="badge badge-navy" id="availableBadge">Loading</span></div>
       <div class="search-row"><label class="sr-only" for="tenderSearch">Search tenders</label><input type="search" id="tenderSearch" placeholder="Search by tender ID, title, or buyer…"></div>
-      <div class="table-wrap"><table id="tenderTable"><thead><tr><th>Tender ID</th><th>Title</th><th>Bidders</th><th>Deadline</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
-      <div class="api-state" id="tenderState">Loading tenders…</div>
+      <div class="table-wrap" tabindex="0"><table id="tenderTable"><caption class="sr-only">Tenders returned by the BidGuard backend</caption><thead><tr><th scope="col">Bid number</th><th scope="col">Tender and buyer</th><th scope="col">Submissions</th><th scope="col">Closing date</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody></tbody></table></div>
+      <div class="api-state" id="tenderState" role="status" aria-live="polite">Loading tenders…</div>
     </div></section>
     <aside class="stack">
       <div class="card"><div class="card-header"><h3>Live workflow</h3></div><div class="activity-item"><time>01</time><div><strong>Select a tender</strong><br><span class="text-muted">Review trusted configuration and submissions.</span></div></div><div class="activity-item"><time>02</time><div><strong>Import bidder evidence</strong><br><span class="text-muted">ZIP or multiple PDF documents.</span></div></div><div class="activity-item"><time>03</time><div><strong>Assess and investigate</strong><br><span class="text-muted">Review persisted evidence, risk and compliance.</span></div></div></div>
@@ -28,6 +27,6 @@
     </aside>
   </div>
 </div></main>
-<footer class="site-footer"><div class="container"><span>BIDGUARD AI · PROTOTYPE BUILD</span><span>LIVE BACKEND DATA · DECISION SUPPORT</span></div></footer>
+<footer class="site-footer"><div class="container"><span>BIDGUARD AI · SIH26100</span><span>LIVE BACKEND DATA · DECISION SUPPORT</span></div></footer>
 <script src="js/api.js"></script><script src="js/main.js"></script><script src="js/dashboard.js"></script>
 </body></html>

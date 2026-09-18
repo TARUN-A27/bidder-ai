@@ -33,3 +33,5 @@
   border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); padding:9px 12px; font-size:13px;
 }
 .file-chip button{ background:none; border:none; cursor:pointer; color:var(--red); font-weight:700; font-size:14px; }
+.claim-fieldset{border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;flex-wrap:wrap;gap:12px 20px}.claim-fieldset legend{padding:0 7px;font-weight:700;font-size:13px}.claim-fieldset .checkbox-row{font-size:13px}
+.import-warnings{list-style:disc;padding-left:18px;margin-top:8px;display:grid;gap:5px}.import-warnings li{font-size:12.5px}
