@@ -1,189 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tender Dashboard — BidGuard AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/components.css">
-<link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/dashboard.css">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tender Dashboard — BidGuard AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css"><link rel="stylesheet" href="css/components.css"><link rel="stylesheet" href="css/layout.css"><link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
-
-<header class="topbar">
-  <div class="container">
-    <a href="dashboard.html" class="brand">
-      <div class="brand-seal">BG</div>
-      <div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div>
-    </a>
-    <div class="officer-menu">
-      <button class="officer-btn" data-officer-btn>
-        <div class="officer-avatar">RS</div>
-        <div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div>
-      </button>
-      <div class="officer-dropdown" data-officer-dropdown>
-        <a href="#">My profile</a>
-        <a href="#">Notification settings</a>
-        <a href="index.html" data-logout>Sign out</a>
-      </div>
-    </div>
+<header class="topbar"><div class="container"><a href="dashboard.html" class="brand"><div class="brand-seal">BG</div><div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div></a><div class="officer-menu"><button class="officer-btn" data-officer-btn><div class="officer-avatar">RS</div><div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div></button><div class="officer-dropdown" data-officer-dropdown><a href="index.html" data-logout>Sign out</a></div></div></div></header>
+<div class="tabstrip-wrap"><div class="container"><nav class="tabstrip"><a href="dashboard.html" class="active">Dashboard</a><a href="dashboard.html">Tenders</a><a href="comparison.html">Bidder comparison</a><a href="decision.html">Decision draft</a></nav></div></div>
+<main><div class="container">
+  <div class="page-head"><div class="title-row"><div><span class="case-id">PROCUREMENT WORKSPACE · LIVE DATA</span><h1>Tender dashboard</h1></div><span class="stamp stamp-verified stamp-sm">Backend connected</span></div></div>
+  <div class="grid grid-4 mb-24">
+    <div class="stat-tile accent-navy"><div class="num" id="tenderCount">—</div><div class="label eyebrow">Available tenders</div></div>
+    <div class="stat-tile accent-green"><div class="num" id="totalSubmissions">—</div><div class="label eyebrow">Bidder submissions</div></div>
+    <div class="stat-tile accent-amber"><div class="num" id="openWorkspaces">—</div><div class="label eyebrow">Tender workspaces</div></div>
+    <div class="stat-tile accent-red"><div class="num" id="nearestClose">—</div><div class="label eyebrow">Next closing</div></div>
   </div>
-</header>
-
-<div class="tabstrip-wrap">
-  <div class="container">
-    <nav class="tabstrip">
-      <a href="dashboard.html" class="active">Dashboard</a>
-      <a href="tender-detail.html">Tenders</a>
-      <a href="comparison.html">Bidder comparison</a>
-      <a href="decision.html">Audit log</a>
-    </nav>
+  <div class="grid grid-sidebar">
+    <section><div class="card"><div class="card-header"><h3>Available tenders</h3><span class="badge badge-navy" id="availableBadge">Loading</span></div>
+      <div class="search-row"><label class="sr-only" for="tenderSearch">Search tenders</label><input type="search" id="tenderSearch" placeholder="Search by tender ID, title, or buyer…"></div>
+      <div class="table-wrap"><table id="tenderTable"><thead><tr><th>Tender ID</th><th>Title</th><th>Bidders</th><th>Deadline</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+      <div class="api-state" id="tenderState">Loading tenders…</div>
+    </div></section>
+    <aside class="stack">
+      <div class="card"><div class="card-header"><h3>Live workflow</h3></div><div class="activity-item"><time>01</time><div><strong>Select a tender</strong><br><span class="text-muted">Review trusted configuration and submissions.</span></div></div><div class="activity-item"><time>02</time><div><strong>Import bidder evidence</strong><br><span class="text-muted">ZIP or multiple PDF documents.</span></div></div><div class="activity-item"><time>03</time><div><strong>Assess and investigate</strong><br><span class="text-muted">Review persisted evidence, risk and compliance.</span></div></div></div>
+      <div class="card"><div class="card-header"><h3>Trust principle</h3></div><p class="text-muted" style="font-size:13px;">BidGuard AI assists with extraction, verification and risk scoring. Assessment output is advisory; the Procurement Officer retains final procurement authority.</p><span class="stamp stamp-review stamp-sm">AI Assists · Officer Decides</span></div>
+    </aside>
   </div>
-</div>
-
-<main>
-  <div class="container">
-
-    <div class="page-head">
-      <div class="title-row">
-        <div>
-          <span class="case-id">CASE REGISTER · FY 2026–27</span>
-          <h1>Tender dashboard</h1>
-        </div>
-        <a href="tender-detail.html" class="btn btn-primary">+ New tender</a>
-      </div>
-    </div>
-
-    <div class="grid grid-4 mb-24">
-      <div class="stat-tile accent-navy">
-        <div class="num">128</div>
-        <div class="label eyebrow">Total bidders tracked</div>
-      </div>
-      <div class="stat-tile accent-green">
-        <div class="num">78</div>
-        <div class="label eyebrow">Low risk</div>
-      </div>
-      <div class="stat-tile accent-amber">
-        <div class="num">34</div>
-        <div class="label eyebrow">Medium risk</div>
-      </div>
-      <div class="stat-tile accent-red">
-        <div class="num">16</div>
-        <div class="label eyebrow">High risk</div>
-      </div>
-    </div>
-
-    <div class="grid grid-sidebar">
-      <section>
-        <div class="card">
-          <div class="card-header">
-            <h3>Active tenders</h3>
-            <span class="badge badge-navy">12 open</span>
-          </div>
-
-          <div class="search-row">
-            <input type="search" id="tenderSearch" placeholder="Search by tender ID or title…">
-            <select id="statusFilter">
-              <option value="">All statuses</option>
-              <option value="open">Open for bidding</option>
-              <option value="review">Under verification</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-
-          <div class="table-wrap">
-            <table id="tenderTable">
-              <thead>
-                <tr>
-                  <th>Tender ID</th>
-                  <th>Title</th>
-                  <th>Bidders</th>
-                  <th>Deadline</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="row-link" data-status="review" onclick="window.location='tender-detail.html'">
-                  <td class="mono">GEM/2026/B/41127</td>
-                  <td>Supply of Ruggedised Field Laptops</td>
-                  <td>18</td>
-                  <td class="mono">04 Sep 2026</td>
-                  <td><span class="badge badge-amber">Under verification</span></td>
-                  <td><a href="tender-detail.html" class="btn btn-sm">Open →</a></td>
-                </tr>
-                <tr class="row-link" data-status="review" onclick="window.location='tender-detail.html'">
-                  <td class="mono">GEM/2026/B/40892</td>
-                  <td>Networking Equipment — District Data Centres</td>
-                  <td>24</td>
-                  <td class="mono">10 Sep 2026</td>
-                  <td><span class="badge badge-amber">Under verification</span></td>
-                  <td><a href="tender-detail.html" class="btn btn-sm">Open →</a></td>
-                </tr>
-                <tr class="row-link" data-status="open" onclick="window.location='tender-detail.html'">
-                  <td class="mono">GEM/2026/B/41340</td>
-                  <td>Annual Maintenance — HVAC Systems, Zone 3</td>
-                  <td>9</td>
-                  <td class="mono">22 Sep 2026</td>
-                  <td><span class="badge badge-navy">Open for bidding</span></td>
-                  <td><a href="tender-detail.html" class="btn btn-sm">Open →</a></td>
-                </tr>
-                <tr class="row-link" data-status="open" onclick="window.location='tender-detail.html'">
-                  <td class="mono">GEM/2026/B/41402</td>
-                  <td>Solar Street Lighting — Rural Circle II</td>
-                  <td>31</td>
-                  <td class="mono">28 Sep 2026</td>
-                  <td><span class="badge badge-navy">Open for bidding</span></td>
-                  <td><a href="tender-detail.html" class="btn btn-sm">Open →</a></td>
-                </tr>
-                <tr class="row-link" data-status="closed" onclick="window.location='decision.html'">
-                  <td class="mono">GEM/2026/B/39217</td>
-                  <td>Office Furniture Empanelment — Zone 1</td>
-                  <td>46</td>
-                  <td class="mono">02 Aug 2026</td>
-                  <td><span class="badge badge-green">Closed · Decided</span></td>
-                  <td><a href="decision.html" class="btn btn-sm">View →</a></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <aside class="stack">
-        <div class="card">
-          <div class="card-header"><h3>Recent activity</h3></div>
-          <div>
-            <div class="activity-item"><time>10:40</time><div><strong>ABC Technologies</strong> — officer remark added on GST discrepancy.</div></div>
-            <div class="activity-item"><time>10:37</time><div>Officer reviewed cross-verification result for bidder PQR Solutions.</div></div>
-            <div class="activity-item"><time>10:35</time><div><span class="mono">GEM/2026/B/41127</span> — PAN ↔ GST name mismatch flagged.</div></div>
-            <div class="activity-item"><time>10:33</time><div>PAN verification completed for 18 bidders.</div></div>
-            <div class="activity-item"><time>10:31</time><div>GST verification batch started.</div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><h3>Trust principle</h3></div>
-          <p class="text-muted" style="font-size:13px;">BidGuard AI automates extraction, cross-verification and risk scoring. All bidder data entry, verification and final decisions are performed and validated by you, the Procurement Officer — every recommendation carries evidence and a confidence score, but nothing is auto-approved.</p>
-          <span class="stamp stamp-review stamp-sm">AI Assists · Officer Decides</span>
-        </div>
-      </aside>
-    </div>
-
-  </div>
-</main>
-
-<footer class="site-footer">
-  <div class="container">
-    <span>BIDGUARD AI · PROTOTYPE BUILD</span>
-    <span>ALL DATA SHOWN IS SAMPLE / MOCK DATA</span>
-  </div>
-</footer>
-
-<script src="js/main.js"></script>
-<script src="js/dashboard.js"></script>
-</body>
-</html>
+</div></main>
+<footer class="site-footer"><div class="container"><span>BIDGUARD AI · PROTOTYPE BUILD</span><span>LIVE BACKEND DATA · DECISION SUPPORT</span></div></footer>
+<script src="js/api.js"></script><script src="js/main.js"></script><script src="js/dashboard.js"></script>
+</body></html>

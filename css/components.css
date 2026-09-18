@@ -241,7 +241,7 @@ main{ padding-bottom: 64px; }
 .checkbox-row input{ width:16px; height:16px; accent-color:var(--navy); }
 
 /* ---------------- table ---------------- */
-.table-wrap{ border: 1px solid var(--border); border-radius: var(--radius); overflow:hidden; background:var(--surface); }
+.table-wrap{ border: 1px solid var(--border); border-radius: var(--radius); overflow-x:auto; background:var(--surface); }
 table{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:640px; }
 thead th{
   text-align:left; font-family:var(--font-cond);
@@ -423,3 +423,18 @@ tbody tr.row-link{ cursor:pointer; }
   background:var(--surface-alt); color:var(--ink-soft); cursor:pointer;
 }
 .pp-btn:hover{ background:var(--navy-bg); color:var(--navy-dark); border-color:var(--navy); }
+
+/* ---------------- API states ---------------- */
+.api-state{
+  border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px;
+  background:var(--surface-alt); color:var(--ink-soft); font-size:13.5px;
+}
+.api-state.error{ border-color:var(--red); background:var(--red-bg); color:var(--red-dark); }
+.api-state.success{ border-color:var(--green); background:var(--green-bg); color:var(--green-dark); }
+.badge-critical{ background:#4b1020; color:#fff; }
+.actions-cell{ display:flex; gap:8px; flex-wrap:wrap; }
+.key-list{ display:grid; gap:8px; }
+.key-row{ display:grid; grid-template-columns:minmax(150px, .7fr) 1.3fr; gap:12px; padding:8px 0; border-bottom:1px solid var(--paper-dim); }
+.key-row:last-child{ border-bottom:0; }
+.key-row .key{ color:var(--ink-soft); }
+.json-evidence{ margin:8px 0 0; padding:12px; background:var(--paper-dim); border-radius:var(--radius-sm); white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.55 var(--font-mono); }

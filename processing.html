@@ -1,137 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Processing Verification — BidGuard AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/components.css">
-<link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/processing.css">
-</head>
-<body>
-
-<header class="topbar">
-  <div class="container">
-    <a href="dashboard.html" class="brand">
-      <div class="brand-seal">BG</div>
-      <div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div>
-    </a>
-    <div class="officer-menu">
-      <button class="officer-btn" data-officer-btn>
-        <div class="officer-avatar">RS</div>
-        <div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div>
-      </button>
-      <div class="officer-dropdown" data-officer-dropdown>
-        <a href="#">My profile</a>
-        <a href="#">Notification settings</a>
-        <a href="index.html" data-logout>Sign out</a>
-      </div>
-    </div>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Run Assessment — BidGuard AI</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/tokens.css"><link rel="stylesheet" href="css/components.css"><link rel="stylesheet" href="css/layout.css"><link rel="stylesheet" href="css/processing.css"></head><body>
+<header class="topbar"><div class="container"><a href="dashboard.html" class="brand"><div class="brand-seal">BG</div><div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div></a><div class="officer-menu"><button class="officer-btn" data-officer-btn><div class="officer-avatar">RS</div><div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div></button><div class="officer-dropdown" data-officer-dropdown><a href="index.html" data-logout>Sign out</a></div></div></div></header>
+<div class="tabstrip-wrap"><div class="container"><nav class="tabstrip"><a href="dashboard.html">Dashboard</a><a id="backLink" href="dashboard.html" class="active">Tenders</a><a id="comparisonNav" href="comparison.html">Bidder comparison</a><a href="decision.html">Decision draft</a></nav></div></div>
+<main><div class="container" style="max-width:820px;"><div class="page-head"><div class="title-row"><div><span class="case-id" id="submissionContext">EXPLICIT ASSESSMENT</span><h1>Run bidder assessment</h1></div></div></div>
+  <div class="stepper mb-24"><div class="step done"><span class="num">✓</span>Tender detail</div><div class="step done"><span class="num">✓</span>Upload bidder</div><div class="step current"><span class="num">3</span>Verification</div><div class="step"><span class="num">4</span>Comparison</div><div class="step"><span class="num">5</span>Investigation</div><div class="step"><span class="num">6</span>Decision</div></div>
+  <div class="card"><div class="card-header"><h3>Compliance pipeline</h3><span class="badge badge-navy" id="overallStatus">Ready</span></div><div class="progress-track mb-24"><div class="progress-fill" id="progressFill" style="width:0;"></div></div>
+    <div class="pipeline" id="pipeline">
+      <div class="pipe-row" data-step="0"><div class="dot">1</div><div class="info"><div class="t">Document extraction</div><div class="d">Azure Document Intelligence reads stored bidder PDFs</div></div><div class="status">Queued</div></div>
+      <div class="pipe-row" data-step="1"><div class="dot">2</div><div class="info"><div class="t">Structured normalization</div><div class="d">Extracted fields are normalized for verification</div></div><div class="status">Queued</div></div>
+      <div class="pipe-row" data-step="2"><div class="dot">3</div><div class="info"><div class="t">Trusted-data verification</div><div class="d">Evidence is checked against authoritative mock portal records</div></div><div class="status">Queued</div></div>
+      <div class="pipe-row" data-step="3"><div class="dot">4</div><div class="info"><div class="t">Compliance evaluation</div><div class="d">Tender-specific requirements are applied</div></div><div class="status">Queued</div></div>
+      <div class="pipe-row" data-step="4"><div class="dot">5</div><div class="info"><div class="t">Scoring and risk resolution</div><div class="d">Score, base risk and risk overrides are resolved</div></div><div class="status">Queued</div></div>
+      <div class="pipe-row" data-step="5"><div class="dot">6</div><div class="info"><div class="t">Assessment persistence</div><div class="d">Result and requirement evidence are stored</div></div><div class="status">Queued</div></div>
+    </div><div class="processing-summary"><span id="stepCounter">READY · 6 BACKEND STAGES</span><span id="etaLabel">NO SIMULATED COMPLETION</span></div><div class="api-state mt-24" id="assessmentState">Ready to assess. The operation may take several minutes.</div><button type="button" class="btn btn-primary mt-24" id="assessButton">Run assessment →</button>
   </div>
-</header>
-
-<div class="tabstrip-wrap">
-  <div class="container">
-    <nav class="tabstrip">
-      <a href="dashboard.html">Dashboard</a>
-      <a href="tender-detail.html" class="active">Tenders</a>
-      <a href="comparison.html">Bidder comparison</a>
-      <a href="decision.html">Audit log</a>
-    </nav>
-  </div>
-</div>
-
-<main>
-  <div class="container" style="max-width:820px;">
-
-    <div class="page-head">
-      <div class="title-row">
-        <div>
-          <span class="case-id">BIDDER · ABC Technologies Pvt Ltd — B-41127-014</span>
-          <h1>Running verification</h1>
-        </div>
-      </div>
-    </div>
-
-    <div class="stepper mb-24">
-      <div class="step done"><span class="num">✓</span> Tender detail</div>
-      <div class="step done"><span class="num">✓</span> Upload bidder</div>
-      <div class="step current"><span class="num">3</span> Verification</div>
-      <div class="step"><span class="num">4</span> Comparison</div>
-      <div class="step"><span class="num">5</span> Investigation</div>
-      <div class="step"><span class="num">6</span> Decision</div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3>Compliance pipeline</h3>
-        <span class="badge badge-navy" id="overallStatus">Running</span>
-      </div>
-
-      <div class="progress-track mb-24">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-
-      <div class="pipeline" id="pipeline">
-        <div class="pipe-row" data-step="0">
-          <div class="dot">1</div>
-          <div class="info"><div class="t">OCR &amp; document classification</div><div class="d">Reading GST, PAN, Udyam, ITR, OEM, MII files</div></div>
-          <div class="status">Queued</div>
-        </div>
-        <div class="pipe-row" data-step="1">
-          <div class="dot">2</div>
-          <div class="info"><div class="t">Structured data extraction</div><div class="d">Company name, GSTIN, PAN, certificate numbers, dates</div></div>
-          <div class="status">Queued</div>
-        </div>
-        <div class="pipe-row" data-step="2">
-          <div class="dot">3</div>
-          <div class="info"><div class="t">Government source cross-check</div><div class="d">GSTN, Udyam, PAN/Income Tax, MCA adapters (mock)</div></div>
-          <div class="status">Queued</div>
-        </div>
-        <div class="pipe-row" data-step="3">
-          <div class="dot">4</div>
-          <div class="info"><div class="t">Cross-document verification</div><div class="d">Entity name matching across PAN / GST / Udyam</div></div>
-          <div class="status">Queued</div>
-        </div>
-        <div class="pipe-row" data-step="4">
-          <div class="dot">5</div>
-          <div class="info"><div class="t">Rule engine evaluation</div><div class="d">Applying tender-specific compliance rules</div></div>
-          <div class="status">Queued</div>
-        </div>
-        <div class="pipe-row" data-step="5">
-          <div class="dot">6</div>
-          <div class="info"><div class="t">Risk scoring &amp; evidence packaging</div><div class="d">Compliance score, risk classification, evidence bundle</div></div>
-          <div class="status">Queued</div>
-        </div>
-      </div>
-
-      <div class="processing-summary">
-        <span id="stepCounter">STEP 0 / 6</span>
-        <span id="etaLabel">ESTIMATED TIME REMAINING: 00:12</span>
-      </div>
-    </div>
-
-    <div class="text-center mt-24" id="doneActions" style="display:none;">
-      <span class="stamp stamp-verified stamp-lg mb-24" style="display:inline-flex;">Verification complete</span>
-      <p class="text-muted">Compliance score calculated: <strong class="mono">92 / 100</strong> — 1 discrepancy requires manual review.</p>
-      <a href="comparison.html" class="btn btn-primary">View bidder comparison →</a>
-      <a href="investigation.html" class="btn">Investigate this bidder</a>
-    </div>
-
-  </div>
-</main>
-
-<footer class="site-footer">
-  <div class="container">
-    <span>BIDGUARD AI · PROTOTYPE BUILD</span>
-    <span>ALL DATA SHOWN IS SAMPLE / MOCK DATA</span>
-  </div>
-</footer>
-
-<script src="js/main.js"></script>
-<script src="js/processing.js"></script>
-</body>
-</html>
+  <div class="text-center mt-24" id="doneActions" hidden><div class="card" id="assessmentResult"></div></div>
+</div></main><footer class="site-footer"><div class="container"><span>BIDGUARD AI · PROTOTYPE BUILD</span><span>REAL ASSESSMENT · NO FAKE TIMERS</span></div></footer><script src="js/api.js"></script><script src="js/main.js"></script><script src="js/processing.js"></script></body></html>

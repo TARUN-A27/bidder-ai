@@ -1,49 +1,68 @@
-/* ============================================================
-   COMPARISON.JS — sortable + filterable bidder comparison table
-   ============================================================ */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const { get } = window.BidGuardAPI;
+  const { params, page } = window.BidGuardNav;
+  const { clear, el, riskBadge } = window.BidGuardUI;
+  const tenderId = params().get('tender_id');
+  const state = document.getElementById('comparisonState');
   const tbody = document.querySelector('#comparisonTable tbody');
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  const sortButtons = document.querySelectorAll('[data-sort]');
   const search = document.getElementById('bidderSearch');
   const riskFilter = document.getElementById('riskFilter');
+  let bidders = [];
 
-  let sortState = { key: 'score', dir: -1 };
+  if (!tenderId) {
+    state.className = 'api-state error';
+    state.textContent = 'Missing tender_id. Select a tender from the dashboard.';
+    return;
+  }
+  document.getElementById('tenderLink').href = page('tender-detail.html', { tender_id: tenderId });
 
-  function sortRows() {
-    const sorted = [...rows].sort((a, b) => {
-      const key = sortState.key;
-      let av = a.dataset[key];
-      let bv = b.dataset[key];
-      if (key === 'score') { av = Number(av); bv = Number(bv); }
-      if (av < bv) return -1 * sortState.dir;
-      if (av > bv) return 1 * sortState.dir;
-      return 0;
-    });
-    sorted.forEach((row) => tbody.appendChild(row));
+  function performanceKey(name) {
+    if (/Averonix/i.test(name)) return 'A';
+    if (/Meralune/i.test(name)) return 'B';
+    if (/Kryvanta/i.test(name)) return 'C';
+    return '';
   }
 
-  sortButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const key = btn.dataset.sort;
-      sortState.dir = sortState.key === key ? sortState.dir * -1 : -1;
-      sortState.key = key;
-      sortRows();
-    });
-  });
-
-  function applyFilters() {
-    const term = (search.value || '').toLowerCase();
+  function render() {
+    const term = search.value.trim().toLowerCase();
     const risk = riskFilter.value;
-    rows.forEach((row) => {
-      const matchesTerm = row.dataset.name.toLowerCase().includes(term);
-      const matchesRisk = !risk || row.dataset.risk === risk;
-      row.style.display = matchesTerm && matchesRisk ? '' : 'none';
+    const visible = bidders.filter((bidder) => bidder.bidder_name.toLowerCase().includes(term) && (!risk || bidder.final_risk === risk));
+    clear(tbody);
+    visible.forEach((bidder) => {
+      const issues = Number(bidder.non_compliant_count) + Number(bidder.missing_count) + Number(bidder.needs_review_count);
+      const pp = el('button', { type: 'button', className: 'pp-table-btn', text: 'Previous Performance', dataset: { ppOpen: '', ppBidder: performanceKey(bidder.bidder_name), ppName: bidder.bidder_name } });
+      const statusClass = issues === 0 ? 'stamp stamp-verified stamp-sm' : 'stamp stamp-review stamp-sm';
+      const findings = `${bidder.non_compliant_count} non-compliant · ${bidder.missing_count} missing · ${bidder.needs_review_count} review`;
+      tbody.append(el('tr', {}, [
+        el('td', {}, [el('strong', { text: bidder.bidder_name }), el('div', { className: 'text-muted', text: bidder.recommendation })]),
+        el('td', { className: 'mono', text: bidder.score }),
+        el('td', {}, [riskBadge(bidder.final_risk)]),
+        el('td', {}, [el('strong', { text: `${issues} total` }), el('div', { className: 'text-muted', text: findings })]),
+        el('td', {}, [el('span', { className: statusClass, text: issues === 0 ? 'No findings' : 'Officer review' })]),
+        el('td', {}, [pp]),
+        el('td', {}, [el('a', { className: 'btn btn-sm', text: 'Investigate', href: page('investigation.html', { submission_id: bidder.submission_id, tender_id: tenderId }) })]),
+      ]));
     });
+    state.hidden = visible.length > 0;
+    state.className = 'api-state';
+    state.textContent = bidders.length ? 'No assessed bidders match these filters.' : 'No assessed bidder submissions are available.';
   }
 
-  search.addEventListener('input', applyFilters);
-  riskFilter.addEventListener('change', applyFilters);
-
-  sortRows();
+  search.addEventListener('input', render);
+  riskFilter.addEventListener('change', render);
+  try {
+    const comparison = await get(`/tenders/${encodeURIComponent(tenderId)}/comparison`);
+    bidders = comparison.bidders || [];
+    const counts = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
+    bidders.forEach((bidder) => { if (bidder.final_risk in counts) counts[bidder.final_risk] += 1; });
+    document.getElementById('totalBidders').textContent = String(bidders.length);
+    document.getElementById('countLOW').textContent = String(counts.LOW);
+    document.getElementById('countCRITICAL').textContent = String(counts.CRITICAL);
+    document.getElementById('attentionCount').textContent = String(counts.MEDIUM + counts.HIGH);
+    document.getElementById('comparisonContext').textContent = `TENDER · ${tenderId} · ASSESSED SUBMISSIONS`;
+    render();
+  } catch (error) {
+    state.className = 'api-state error';
+    state.textContent = error.message || 'Unable to load bidder comparison.';
+  }
 });

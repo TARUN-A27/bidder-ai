@@ -13,7 +13,6 @@
 <link rel="stylesheet" href="css/previous-performance.css">
 </head>
 <body>
-
 <header class="topbar">
   <div class="container">
     <a href="dashboard.html" class="brand">
@@ -36,23 +35,30 @@
 
 <div class="tabstrip-wrap">
   <div class="container">
-    <nav class="tabstrip">
+    <nav class="tabstrip" aria-label="Primary navigation">
       <a href="dashboard.html">Dashboard</a>
-      <a href="tender-detail.html">Tenders</a>
-      <a href="comparison.html" class="active">Bidder comparison</a>
-      <a href="decision.html">Audit log</a>
+      <a id="tenderLink" href="dashboard.html">Tenders</a>
+      <a id="comparisonLink" href="comparison.html" class="active">Bidder comparison</a>
+      <a id="decisionNav" href="decision.html">Decision draft</a>
     </nav>
   </div>
 </div>
 
-<main>
+<main class="investigation-page">
   <div class="container">
+    <section class="investigation-titlebar">
+      <div>
+        <span class="eyebrow">Assessment workspace</span>
+        <h1>Bidder investigation</h1>
+        <p>Review compliance findings, evidence and risk signals before recording an officer decision.</p>
+      </div>
+      <div class="case-reference">
+        <span class="case-reference-label">Case reference</span>
+        <span class="case-id" id="submissionCode">Loading assessment…</span>
+      </div>
+    </section>
 
-    <div class="page-head" style="padding-bottom:0;">
-      <span class="case-id">TENDER · GEM/2026/B/41127 · BID REF B-41127-014</span>
-    </div>
-
-    <div class="stepper mb-24" style="margin-top:14px;">
+    <div class="stepper workflow-stepper" aria-label="Bid evaluation workflow">
       <div class="step done"><span class="num">✓</span> Tender detail</div>
       <div class="step done"><span class="num">✓</span> Upload bidder</div>
       <div class="step done"><span class="num">✓</span> Verification</div>
@@ -61,206 +67,145 @@
       <div class="step"><span class="num">6</span> Decision</div>
     </div>
 
-    <div class="bidder-head">
-      <div>
-        <div class="bh-name">XYZ Enterprises</div>
-        <div class="bh-meta">GSTIN: 03XYZDE5678F1Z2 &nbsp;·&nbsp; PAN: XYZDE5678F &nbsp;·&nbsp; Category: MSME</div>
-      </div>
-      <div class="flex-gap" style="align-items:center;">
-        <button type="button" class="pp-trigger" data-pp-open data-pp-bidder="B" data-pp-name="XYZ Enterprises">📊 Previous performance</button>
-        <span class="stamp stamp-review">Medium Risk</span>
-        <div class="score-ring"><span class="n">84</span><span class="l">Score</span></div>
-        <a href="decision.html" class="btn btn-primary">Proceed to decision →</a>
-      </div>
-    </div>
+    <div class="api-state investigation-state" id="investigationState">Loading persisted assessment and requirement evidence…</div>
 
-    <div class="subtabs" role="tablist">
-      <button class="active" data-tab="overview">Overview</button>
-      <button data-tab="evidence">Evidence viewer</button>
-      <button data-tab="whatif">What-if simulator</button>
-      <button data-tab="copilot">AI copilot</button>
-      <button data-tab="audit">Audit trail</button>
-    </div>
+    <section class="bidder-hero" aria-labelledby="bidderName">
+      <div class="bidder-identity">
+        <span class="hero-kicker">Current bidder assessment</span>
+        <h2 id="bidderName">Assessment investigation</h2>
+        <p id="bidderMeta">Persisted backend result</p>
+      </div>
 
-    <!-- OVERVIEW -->
-    <div class="tabpanel active" id="panel-overview">
-      <div class="grid grid-sidebar">
-        <div class="card">
-          <div class="card-header"><h3>Transparent compliance score</h3></div>
-          <div class="score-bar-row"><div class="label">GST</div><div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div><div class="val">15 / 15</div><button type="button" class="open-file" data-open-file="GST Certificate — XYZ Enterprises">Open file</button></div>
-          <div class="score-bar-row"><div class="label">PAN</div><div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div><div class="val">10 / 10</div><button type="button" class="open-file" data-open-file="PAN Card — XYZ Enterprises">Open file</button></div>
-          <div class="score-bar-row"><div class="label">Udyam</div><div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div><div class="val">10 / 10</div><button type="button" class="open-file" data-open-file="Udyam / MSME Certificate — XYZ Enterprises">Open file</button></div>
-          <div class="score-bar-row"><div class="label">Income tax</div><div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div><div class="val">15 / 15</div><button type="button" class="open-file" data-open-file="Income Tax Return — XYZ Enterprises">Open file</button></div>
-          <div class="score-bar-row"><div class="label">OEM authorization</div><div class="score-bar-track"><div class="score-bar-fill" style="width:33%; background:var(--amber)"></div></div><div class="val">5 / 15</div><button type="button" class="open-file" data-open-file="OEM Authorization Letter — XYZ Enterprises">Open file</button></div>
-          <div class="score-bar-row"><div class="label">Make in India</div><div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div><div class="val">10 / 10</div><button type="button" class="open-file" data-open-file="Make in India Declaration — XYZ Enterprises">Open file</button></div>
-          <div class="score-bar-row"><div class="label">Experience</div><div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div><div class="val">10 / 10</div><button type="button" class="open-file" data-open-file="Experience Certificate — XYZ Enterprises">Open file</button></div>
-          <div class="score-bar-row"><div class="label">Documentation</div><div class="score-bar-track"><div class="score-bar-fill" style="width:90%"></div></div><div class="val">9 / 10</div><button type="button" class="open-file" data-open-file="Supporting Documentation — XYZ Enterprises">Open file</button></div>
-          <div class="score-bar-row" style="border-top:1px solid var(--border); margin-top:8px; padding-top:14px;">
-            <div class="label" style="font-weight:700;">TOTAL</div><div class="score-bar-track" style="background:transparent;"></div><div class="val" style="font-weight:700; font-size:15px;">84 / 100</div><span style="width:76px; flex:none;"></span>
-          </div>
+      <div class="bidder-actions">
+        <button type="button" class="pp-trigger" id="previousPerformance" data-pp-open>Previous Performance</button>
+        <div class="risk-block">
+          <span class="risk-label">Final risk</span>
+          <span id="riskStamp" class="stamp stamp-review">Pending</span>
         </div>
+        <div class="score-ring" id="scoreRing" aria-label="Assessment score">
+          <span class="n" id="score">—</span>
+          <span class="l">/ 100</span>
+        </div>
+        <a id="decisionLink" href="decision.html" class="btn btn-primary hero-decision">Proceed to decision <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
 
-        <aside class="stack">
-          <div class="card">
-            <div class="card-header"><h3>AI recommendation</h3></div>
-            <p style="font-size:13.5px;">Bidder satisfies 6 of 8 mandatory checks. Two issues require officer attention:</p>
-            <ul style="padding-left:18px; font-size:13.5px; display:flex; flex-direction:column; gap:6px;">
-              <li>Company-name discrepancy between PAN and GST records (94% confidence)</li>
-              <li>OEM authorization certificate requires manual verification</li>
-            </ul>
-            <div class="mt-24"><span class="stamp stamp-review stamp-sm">Partially compliant</span></div>
+    <section class="assessment-metrics" aria-label="Assessment summary">
+      <article class="metric-card metric-primary">
+        <span class="metric-label">Requirements checked</span>
+        <strong id="metricTotal">—</strong>
+        <span class="metric-note">Weighted tender requirements</span>
+      </article>
+      <article class="metric-card metric-success">
+        <span class="metric-label">Compliant</span>
+        <strong id="metricCompliant">—</strong>
+        <span class="metric-note">No exception detected</span>
+      </article>
+      <article class="metric-card metric-attention">
+        <span class="metric-label">Needs attention</span>
+        <strong id="metricAttention">—</strong>
+        <span class="metric-note">Review, missing or failed</span>
+      </article>
+      <article class="metric-card metric-neutral">
+        <span class="metric-label">Evidence sources</span>
+        <strong id="metricSources">—</strong>
+        <span class="metric-note">Unique references cited</span>
+      </article>
+    </section>
+
+    <div class="workspace-tabs" role="tablist" aria-label="Investigation views">
+      <button class="active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+      <button data-tab="requirements" role="tab" aria-selected="false">Requirements</button>
+      <button data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
+    </div>
+
+    <section class="tabpanel active" id="panel-overview" role="tabpanel">
+      <div class="investigation-layout">
+        <article class="workspace-card compliance-card">
+          <div class="workspace-card-head">
+            <div>
+              <span class="eyebrow">Requirement performance</span>
+              <h3>Compliance breakdown</h3>
+              <p>Backend-calculated points and statuses for every configured requirement.</p>
+            </div>
+            <span class="result-pill" id="resultCount">—</span>
           </div>
-          <div class="card">
-            <div class="card-header"><h3>Risk factors</h3></div>
-            <div class="info-kv"><span class="k">Blacklisting check</span><span class="v" style="color:var(--green-dark);">Clear</span></div>
-            <div class="info-kv"><span class="k">Document discrepancy</span><span class="v" style="color:var(--amber-dark);">1 found</span></div>
-            <div class="info-kv"><span class="k">Missing documents</span><span class="v" style="color:var(--amber-dark);">1 (OEM)</span></div>
-            <div class="info-kv"><span class="k">Turnover requirement</span><span class="v" style="color:var(--green-dark);">Met</span></div>
-          </div>
+          <div class="score-breakdown" id="scoreBreakdown"></div>
+        </article>
+
+        <aside class="investigation-sidebar">
+          <article class="workspace-card recommendation-card">
+            <div class="side-card-icon">AI</div>
+            <span class="eyebrow">Officer brief</span>
+            <h3>Assessment advisory</h3>
+            <p id="recommendation">—</p>
+            <div class="advisory-note">
+              <strong>Advisory only</strong>
+              <span>Final procurement authority remains with the Procurement Officer.</span>
+            </div>
+          </article>
+
+          <article class="workspace-card governance-card">
+            <span class="eyebrow">Risk & governance</span>
+            <h3>Decision context</h3>
+            <div class="governance-grid">
+              <div class="governance-item"><span>Base risk</span><div id="baseRisk">—</div></div>
+              <div class="governance-item"><span>Final risk</span><div id="finalRisk">—</div></div>
+              <div class="governance-item full"><span>Assessed at</span><strong id="assessedAt">—</strong></div>
+              <div class="governance-item full"><span>Decision authority</span><strong id="authority">—</strong></div>
+            </div>
+            <div class="override-panel">
+              <span class="override-title">Triggered risk overrides</span>
+              <ul id="overrideList"></ul>
+            </div>
+          </article>
         </aside>
       </div>
-    </div>
+    </section>
 
-    <!-- EVIDENCE -->
-    <div class="tabpanel" id="panel-evidence">
-      <div class="mismatch-banner">⚠ Entity mismatch detected between PAN and GST records — confidence 94%. Manual verification required.</div>
-      <div class="evidence-grid">
-        <div class="exhibit">
-          <span class="tag">EXHIBIT A · PAN CARD</span>
-          <h4>Permanent Account Number</h4>
-          <div class="kv"><span class="k">Legal name</span><span class="v">ABC Technologies Pvt Ltd</span></div>
-          <div class="kv"><span class="k">PAN</span><span class="v">XYZDE5678F</span></div>
-          <div class="kv"><span class="k">Source</span><span class="v">Income Tax (mock)</span></div>
-          <div class="kv"><span class="k">Status</span><span class="v" style="color:var(--green-dark);">VERIFIED</span></div>
-        </div>
-        <div class="exhibit">
-          <span class="tag">EXHIBIT B · GST CERTIFICATE</span>
-          <h4>GST Registration</h4>
-          <div class="kv"><span class="k">Legal name</span><span class="v" style="color:var(--red-dark);">ABC Technology Solutions</span></div>
-          <div class="kv"><span class="k">GSTIN</span><span class="v">03XYZDE5678F1Z2</span></div>
-          <div class="kv"><span class="k">Source</span><span class="v">GSTN (mock)</span></div>
-          <div class="kv"><span class="k">Status</span><span class="v" style="color:var(--amber-dark);">NAME MISMATCH</span></div>
-        </div>
-        <div class="exhibit">
-          <span class="tag">EXHIBIT C · UDYAM CERTIFICATE</span>
-          <h4>Udyam / MSME Registration</h4>
-          <div class="kv"><span class="k">Legal name</span><span class="v">ABC Technologies Pvt Ltd</span></div>
-          <div class="kv"><span class="k">Udyam no.</span><span class="v">UDYAM-DL-03-0041127</span></div>
-          <div class="kv"><span class="k">Source</span><span class="v">Udyam portal (mock)</span></div>
-          <div class="kv"><span class="k">Status</span><span class="v" style="color:var(--green-dark);">ENTITY MATCH</span></div>
-        </div>
-        <div class="exhibit">
-          <span class="tag">EXHIBIT D · OEM AUTHORIZATION</span>
-          <h4>OEM Authorization Letter</h4>
-          <div class="kv"><span class="k">Issuing OEM</span><span class="v">— not clearly legible —</span></div>
-          <div class="kv"><span class="k">Certificate no.</span><span class="v">Unreadable scan</span></div>
-          <div class="kv"><span class="k">Source</span><span class="v">Bidder upload</span></div>
-          <div class="kv"><span class="k">Status</span><span class="v" style="color:var(--amber-dark);">NEEDS REVIEW</span></div>
-        </div>
+    <section class="tabpanel" id="panel-requirements" role="tabpanel">
+      <div class="section-intro">
+        <div><span class="eyebrow">Requirement register</span><h3>Compliance findings</h3></div>
+        <p>Each result is backed by persisted scoring, reasons and source references.</p>
       </div>
-    </div>
+      <div class="requirement-grid" id="requirementResults"></div>
+    </section>
 
-    <!-- WHAT-IF -->
-    <div class="tabpanel" id="panel-whatif">
-      <div class="card">
-        <div class="card-header"><h3>What-if compliance simulator</h3></div>
-        <p class="text-muted" style="font-size:13px;">Toggle an issue as resolved to preview how the compliance score and risk classification would change. This does not alter the official record.</p>
-
-        <div class="whatif-row">
-          <div><strong>Mark OEM authorization as verified</strong><div class="text-muted" style="font-size:12px;">Officer confirms authenticity after manual check</div></div>
-          <label class="toggle"><input type="checkbox" data-whatif="10"><span class="track"></span><span class="thumb"></span></label>
-        </div>
-        <div class="whatif-row">
-          <div><strong>Resolve PAN ↔ GST name discrepancy</strong><div class="text-muted" style="font-size:12px;">Bidder provides a name-change certificate</div></div>
-          <label class="toggle"><input type="checkbox" data-whatif="5"><span class="track"></span><span class="thumb"></span></label>
-        </div>
-        <div class="whatif-row">
-          <div><strong>Complete missing documentation</strong><div class="text-muted" style="font-size:12px;">Bidder resubmits legible scans</div></div>
-          <label class="toggle"><input type="checkbox" data-whatif="1"><span class="track"></span><span class="thumb"></span></label>
-        </div>
-
-        <div class="whatif-result">
-          <div>
-            <div class="eyebrow">Simulated score</div>
-            <div style="font-family:var(--font-mono); font-size:26px; font-weight:700;">
-              84 <span class="arrow">→</span> <span id="simScore">84</span>
-            </div>
-          </div>
-          <div>
-            <div class="eyebrow">Simulated risk</div>
-            <div id="simRisk"><span class="badge badge-amber">Medium</span></div>
-          </div>
-        </div>
+    <section class="tabpanel" id="panel-evidence" role="tabpanel">
+      <div class="evidence-notice" id="evidenceNotice">
+        <div class="notice-mark">i</div>
+        <div><strong>Evidence review</strong><span>Review source references, extracted fields and warnings before recording a decision.</span></div>
       </div>
-    </div>
-
-    <!-- COPILOT -->
-    <div class="tabpanel" id="panel-copilot">
-      <div class="card">
-        <div class="card-header"><h3>AI compliance copilot</h3></div>
-        <div class="chat-suggestions">
-          <button class="chip" data-q="Why is this bidder medium risk?">Why is this bidder medium risk?</button>
-          <button class="chip" data-q="What evidence supports the mismatch?">What evidence supports the mismatch?</button>
-          <button class="chip" data-q="What would resolve this bidder's issues?">What would resolve the issues?</button>
-        </div>
-        <div class="chat" id="chatLog">
-          <div class="msg ai">
-            <div class="avatar">AI</div>
-            <div class="bubble">I can answer questions about XYZ Enterprises using the tender requirements and verified evidence on file. Try a suggested question, or ask your own.</div>
-          </div>
-        </div>
-        <form class="chat-input" id="chatForm">
-          <input type="text" id="chatInput" placeholder="Ask about this bidder's compliance…" autocomplete="off">
-          <button type="submit" class="btn btn-primary">Ask</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- AUDIT -->
-    <div class="tabpanel" id="panel-audit">
-      <div class="card">
-        <div class="card-header"><h3>Audit trail</h3></div>
-        <div class="timeline">
-          <div class="t-item"><time>10:31 AM</time>GST verification requested against GSTN (mock adapter).</div>
-          <div class="t-item"><time>10:33 AM</time>PAN verification completed — status ACTIVE.</div>
-          <div class="t-item"><time>10:35 AM</time><strong>Mismatch detected</strong> — PAN legal name differs from GST legal name (confidence 94%).</div>
-          <div class="t-item"><time>10:37 AM</time>Officer R. Sharma reviewed the discrepancy in the Evidence Viewer.</div>
-          <div class="t-item"><time>10:40 AM</time>Officer added remark: "Requesting name-change certificate from bidder."</div>
-        </div>
-      </div>
-    </div>
-
+      <div class="evidence-grid" id="evidenceGrid"></div>
+    </section>
   </div>
 </main>
 
 <footer class="site-footer">
   <div class="container">
     <span>BIDGUARD AI · PROTOTYPE BUILD</span>
-    <span>ALL DATA SHOWN IS SAMPLE / MOCK DATA</span>
+    <span>AI ASSISTS · OFFICER DECIDES</span>
   </div>
 </footer>
 
-<!-- Previous Performance drawer (reusable — see js/previous-performance.js) -->
-<div class="drawer-overlay" id="ppOverlay">
-  <aside class="drawer" role="dialog" aria-label="Previous performance">
+<div class="drawer-overlay" id="ppOverlay" aria-hidden="true">
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="ppTitle">
     <div class="drawer-head">
       <div>
-        <h3>Previous Performance</h3>
+        <h3 id="ppTitle">Previous Performance</h3>
         <div class="sub" id="ppBidderName">—</div>
         <div class="sub2">Historical Procurement Record</div>
       </div>
-      <button class="drawer-close" id="ppClose" aria-label="Close">✕</button>
+      <button type="button" class="drawer-close" id="ppClose" aria-label="Close Previous Performance">×</button>
     </div>
-    <div class="drawer-body" id="ppBody">
-      <!-- populated by js/previous-performance.js -->
-    </div>
+    <div class="drawer-body" id="ppBody"></div>
     <div class="drawer-footer">Historical performance is advisory only. Final procurement decisions remain with the Procurement Officer.</div>
   </aside>
 </div>
 
+<script src="js/api.js"></script>
 <script src="js/main.js"></script>
 <script src="js/investigation.js"></script>
-<script src="js/file-viewer.js"></script>
 <script src="js/previous-performance.js"></script>
 </body>
 </html>
