@@ -1,8 +1,10 @@
 from contextlib import contextmanager
 from datetime import datetime, timezone
+import hashlib
 import json
 from types import SimpleNamespace
 from unittest.mock import Mock
+from uuid import NAMESPACE_URL, uuid5
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +16,7 @@ from app.schemas.assessment import AssessmentSummaryResponse, PersistedRequireme
 from app.services.assessment.errors import AssessmentInputError, AssessmentNotFoundError, AssessmentStateError
 from app.services.assessment.assessment_service import AssessmentService
 from app.services.assessment.prototype_evidence import PrototypeEvidenceProvider
+from app.schemas.compliance import BidderSubmissionManifest
 from app.schemas.verification_evidence import VerificationEvidenceBundle, GstRegistryEvidence
 
 
@@ -93,9 +96,151 @@ def test_persisted_timestamp_restores_utc_without_losing_precision():
 
 
 def test_missing_prototype_evidence_is_an_input_error(tmp_path):
-    provider = PrototypeEvidenceProvider(SimpleNamespace(prototype_dataset_root=tmp_path))
+    provider = PrototypeEvidenceProvider(
+        SimpleNamespace(prototype_dataset_root=tmp_path), lambda _submission_id: []
+    )
     with pytest.raises(AssessmentInputError, match="No unique prototype evidence"):
         provider.load(Mock())
+
+
+def evidence_provider(tmp_path, records, *, fallback=True):
+    prototype_root = tmp_path / "prototype"
+    storage_root = tmp_path / "uploads"
+    settings = SimpleNamespace(
+        prototype_dataset_root=prototype_root,
+        storage_root=storage_root,
+        allow_preseeded_prototype_document_fallback=fallback,
+    )
+    return PrototypeEvidenceProvider(settings, lambda _submission_id: records), prototype_root, storage_root
+
+
+def manifest_for(documents):
+    return BidderSubmissionManifest(
+        bidder_id="BIDDER_A", bidder_name="Example", document_count=len(documents),
+        documents=documents,
+    )
+
+
+def test_imported_documents_are_the_exclusive_assessment_source(tmp_path):
+    content = b"imported evidence"
+    digest = hashlib.sha256(content).hexdigest()
+    submission_id = "submission"
+    storage_path = f"submissions/{submission_id}/original/02_GST.pdf"
+    provider, prototype_root, storage_root = evidence_provider(tmp_path, [{
+        "file_name": "02_GST.pdf", "storage_path": storage_path, "sha256": digest,
+        "page_count": 2, "upload_status": "UPLOADED",
+    }])
+    stored = storage_root / storage_path
+    stored.parent.mkdir(parents=True)
+    stored.write_bytes(content)
+    external = prototype_root / "bidders/Bidder_A/documents/02_GST.pdf"
+    external.parent.mkdir(parents=True)
+    external.write_bytes(b"different external fixture")
+    manifest = manifest_for([{
+        "document_number": "02", "file_name": "02_GST.pdf", "page_count": 2,
+        "sha256": digest,
+    }])
+
+    paths = provider._document_paths(
+        SimpleNamespace(submission_id=submission_id), external.parent.parent,
+        {"synthetic": True}, manifest,
+    )
+
+    assert paths == {"02_gst.pdf": stored.resolve()}
+
+
+def test_incomplete_stored_uploads_never_mix_with_prototype_files(tmp_path):
+    content = b"first imported evidence"
+    digest = hashlib.sha256(content).hexdigest()
+    submission_id = "submission"
+    storage_path = f"submissions/{submission_id}/original/02_GST.pdf"
+    records = [{
+        "file_name": "02_GST.pdf", "storage_path": storage_path, "sha256": digest,
+        "page_count": 1, "upload_status": "UPLOADED",
+    }]
+    provider, prototype_root, storage_root = evidence_provider(tmp_path, records)
+    stored = storage_root / storage_path
+    stored.parent.mkdir(parents=True)
+    stored.write_bytes(content)
+    external_root = prototype_root / "bidders/Bidder_A/documents"
+    external_root.mkdir(parents=True)
+    (external_root / "02_GST.pdf").write_bytes(content)
+    (external_root / "03_PAN.pdf").write_bytes(b"second fixture evidence")
+    manifest = manifest_for([
+        {"document_number": "02", "file_name": "02_GST.pdf", "sha256": digest},
+        {"document_number": "03", "file_name": "03_PAN.pdf"},
+    ])
+
+    with pytest.raises(AssessmentInputError, match="document set differs"):
+        provider._document_paths(
+            SimpleNamespace(submission_id=submission_id), external_root.parent,
+            {"synthetic": True}, manifest,
+        )
+
+
+def test_mismatched_stored_upload_fails_integrity_validation(tmp_path):
+    submission_id = "submission"
+    storage_path = f"submissions/{submission_id}/original/02_GST.pdf"
+    provider, prototype_root, storage_root = evidence_provider(tmp_path, [{
+        "file_name": "02_GST.pdf", "storage_path": storage_path, "sha256": "0" * 64,
+        "page_count": 1, "upload_status": "UPLOADED",
+    }])
+    stored = storage_root / storage_path
+    stored.parent.mkdir(parents=True)
+    stored.write_bytes(b"tampered")
+    manifest = manifest_for([{"document_number": "02", "file_name": "02_GST.pdf"}])
+
+    with pytest.raises(AssessmentInputError, match="integrity validation"):
+        provider._document_paths(
+            SimpleNamespace(submission_id=submission_id), prototype_root,
+            {"synthetic": True}, manifest,
+        )
+
+
+def test_preseeded_fallback_is_explicit_and_synthetic_only(tmp_path):
+    provider, prototype_root, _ = evidence_provider(tmp_path, [], fallback=False)
+    manifest = manifest_for([{"document_number": "02", "file_name": "02_GST.pdf"}])
+    with pytest.raises(AssessmentInputError, match="Stored assessment documents are unavailable"):
+        provider._document_paths(
+            SimpleNamespace(submission_id="submission"), prototype_root,
+            {"synthetic": True}, manifest,
+        )
+
+
+def test_preseeded_synthetic_fallback_uses_validated_prototype_documents(tmp_path):
+    provider, prototype_root, _ = evidence_provider(tmp_path, [], fallback=True)
+    document_root = prototype_root / "bidders/Bidder_A/documents"
+    document_root.mkdir(parents=True)
+    document = document_root / "02_GST.pdf"
+    document.write_bytes(b"prototype evidence")
+    digest = hashlib.sha256(document.read_bytes()).hexdigest()
+    manifest = manifest_for([{
+        "document_number": "02", "file_name": document.name, "sha256": digest,
+    }])
+
+    tender_id = "tender"
+    bidder_id = "bidder"
+    submission_id = str(uuid5(NAMESPACE_URL, f"{tender_id}::{bidder_id}::submission"))
+    paths = provider._document_paths(
+        SimpleNamespace(
+            submission_id=submission_id, tender_id=tender_id, bidder_id=bidder_id,
+        ), document_root.parent,
+        {"synthetic": True}, manifest,
+    )
+
+    assert paths == {document.name.casefold(): document.resolve()}
+
+
+def test_imported_submission_with_no_document_rows_never_uses_fallback(tmp_path):
+    provider, prototype_root, _ = evidence_provider(tmp_path, [], fallback=True)
+    manifest = manifest_for([{"document_number": "02", "file_name": "02_GST.pdf"}])
+
+    with pytest.raises(AssessmentInputError, match="Stored assessment documents are unavailable"):
+        provider._document_paths(
+            SimpleNamespace(
+                submission_id="normal-import-id", tender_id="tender", bidder_id="bidder",
+            ), prototype_root, {"synthetic": True}, manifest,
+        )
 
 
 @pytest.mark.parametrize("invalid", ["state", "verification", "model", "weights"])

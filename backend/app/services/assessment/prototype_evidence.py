@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
+from uuid import NAMESPACE_URL, uuid5
 
 from app.schemas.compliance import BidderEvidenceBundle, BidderSubmissionManifest, TenderRequirementContext
 from app.services.assessment.errors import AssessmentInputError
@@ -29,11 +31,12 @@ def read_json(path: Path):
 
 
 class PrototypeEvidenceProvider:
-    """Resolve the configured prototype dataset using DB identity, never URL paths."""
+    """Resolve trusted prototype metadata while extracting imported evidence PDFs."""
 
-    def __init__(self, settings):
+    def __init__(self, settings, document_records):
         self.settings = settings
         self.root = settings.prototype_dataset_root
+        self.document_records = document_records
 
     def resolve(self, submission):
         matches = []
@@ -66,6 +69,7 @@ class PrototypeEvidenceProvider:
                 financial_price_file=raw.get("financial_price_file"),
                 quality_findings=raw.get("controlled_document_quality_findings", []),
                 deliberately_missing_documents=raw.get("deliberately_missing_documents", []))
+            document_paths = self._document_paths(submission, directory, profile, manifest)
             values = dict(bidder_id=profile["bidder_identity"]["bidder_id"], legal_name=submission.bidder_name,
                           pan_reference=submission.pan_reference, offered_model=submission.offered_model,
                           manifest=manifest, claims=dict(mse_purchase_preference=submission.mse_claimed,
@@ -75,9 +79,7 @@ class PrototypeEvidenceProvider:
             normalizer = DocumentNormalizer()
             with AzureDocumentIntelligenceService(self.settings) as extractor:
                 for item in manifest.documents:
-                    path = (directory / "documents" / item.file_name).resolve()
-                    if path.parent != (directory / "documents").resolve() or not path.is_file():
-                        raise AssessmentInputError("A manifested prototype document is unavailable")
+                    path = document_paths[item.file_name.casefold()]
                     # Phase 1 has no normalizer for these supporting documents.
                     if item.file_name.startswith(("01_", "11_")) or "DPIIT_Recognition" in item.file_name:
                         continue
@@ -96,3 +98,82 @@ class PrototypeEvidenceProvider:
         except (OSError, ValueError, KeyError, DocumentNormalizationError, AzureConfigurationError,
                 MockVerificationError, ScoringConfigurationError) as exc:
             raise AssessmentInputError("Required prototype evidence or configuration is unavailable or invalid") from exc
+
+    def _document_paths(self, submission, directory, profile, manifest):
+        stored = self.document_records(submission.submission_id)
+        if stored:
+            return self._validated_stored_paths(submission.submission_id, manifest, stored)
+        if (not self.settings.allow_preseeded_prototype_document_fallback
+                or profile.get("synthetic") is not True
+                or not self._is_preseeded_submission(submission)):
+            raise AssessmentInputError("Stored assessment documents are unavailable")
+        return self._validated_prototype_paths(directory, manifest)
+
+    @staticmethod
+    def _is_preseeded_submission(submission):
+        seeded_id = uuid5(
+            NAMESPACE_URL,
+            "::".join((submission.tender_id, submission.bidder_id, "submission")),
+        )
+        return submission.submission_id == str(seeded_id)
+
+    def _validated_stored_paths(self, submission_id, manifest, records):
+        expected = self._manifest_documents(manifest)
+        actual = {}
+        for record in records:
+            name = record.get("file_name")
+            if not isinstance(name, str) or Path(name).name != name:
+                raise AssessmentInputError("Stored assessment document metadata is invalid")
+            identity = name.casefold()
+            if identity in actual:
+                raise AssessmentInputError("Stored assessment document metadata is ambiguous")
+            actual[identity] = record
+        if set(actual) != set(expected):
+            raise AssessmentInputError("Stored assessment document set differs from the trusted manifest")
+
+        storage_root = self.settings.storage_root.resolve()
+        submission_root = (storage_root / "submissions" / submission_id / "original").resolve()
+        paths = {}
+        for identity, item in expected.items():
+            record = actual[identity]
+            path = (storage_root / str(record.get("storage_path", ""))).resolve()
+            if (path.parent != submission_root or path.name.casefold() != identity
+                    or record.get("upload_status") != "UPLOADED" or not path.is_file()):
+                raise AssessmentInputError("A stored assessment document is unavailable or unsafe")
+            digest = self._sha256(path)
+            recorded_digest = str(record.get("sha256", "")).casefold()
+            if digest != recorded_digest or (item.sha256 and digest != item.sha256.casefold()):
+                raise AssessmentInputError("A stored assessment document failed integrity validation")
+            if item.page_count is not None and int(record.get("page_count") or 0) != item.page_count:
+                raise AssessmentInputError("Stored assessment document metadata differs from the trusted manifest")
+            paths[identity] = path
+        return paths
+
+    def _validated_prototype_paths(self, directory, manifest):
+        root = (directory / "documents").resolve()
+        paths = {}
+        for identity, item in self._manifest_documents(manifest).items():
+            path = (root / item.file_name).resolve()
+            if path.parent != root or not path.is_file():
+                raise AssessmentInputError("A manifested prototype document is unavailable")
+            if item.sha256 and self._sha256(path) != item.sha256.casefold():
+                raise AssessmentInputError("A manifested prototype document failed integrity validation")
+            paths[identity] = path
+        return paths
+
+    @staticmethod
+    def _manifest_documents(manifest):
+        if manifest.document_count != len(manifest.documents):
+            raise AssessmentInputError("Trusted prototype manifest document count is invalid")
+        documents = {item.file_name.casefold(): item for item in manifest.documents}
+        if len(documents) != len(manifest.documents):
+            raise AssessmentInputError("Trusted prototype manifest contains duplicate documents")
+        return documents
+
+    @staticmethod
+    def _sha256(path):
+        digest = hashlib.sha256()
+        with path.open("rb") as source:
+            while chunk := source.read(1024 * 1024):
+                digest.update(chunk)
+        return digest.hexdigest()

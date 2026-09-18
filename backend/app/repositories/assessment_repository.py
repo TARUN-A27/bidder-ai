@@ -70,6 +70,13 @@ class AssessmentRepository:
             raise AssessmentNotFoundError("Submission not found")
         return SubmissionResponse.model_validate(found[0])
 
+    def submission_documents(self, submission_id):
+        return self.query(
+            "SELECT file_name,storage_path,sha256,page_count,upload_status "
+            "FROM bidder_documents WHERE submission_id=:id ORDER BY file_name",
+            id=submission_id,
+        )
+
     def submissions(self, tender_id):
         self.tender(tender_id)
         return self.query(SUBMISSION_SQL + " WHERE s.tender_id=:id ORDER BY b.legal_name", id=tender_id)

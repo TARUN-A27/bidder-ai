@@ -186,13 +186,21 @@ def main() -> None:
         assert response.status_code == 404
         print("PASS: unknown tender returned 404")
 
-        assessment = client.post(
-            f"/api/v1/submissions/{imported['BIDDER_A']['submission_id']}/assess"
-        )
-        assert assessment.status_code == 200, assessment.text
-        assert assessment.json()["score"] == 100.0
-        assert assessment.json()["final_risk"] == "LOW"
-        print("PASS: imported Bidder A assessed at 100.0 / LOW")
+        expected_assessments = {
+            "BIDDER_A": (100.0, "LOW"),
+            "BIDDER_B": (80.5, "HIGH"),
+            "BIDDER_C": (34.0, "CRITICAL"),
+        }
+        for label, (score, risk) in expected_assessments.items():
+            assessment = client.post(
+                f"/api/v1/submissions/{imported[label]['submission_id']}/assess"
+            )
+            assert assessment.status_code == 200, assessment.text
+            assert (assessment.json()["score"], assessment.json()["final_risk"]) == (
+                score,
+                risk,
+            )
+            print(f"PASS: imported {label} assessed at {score} / {risk}")
 
     print("PASS: bidder ZIP/folder ingestion, Oracle persistence, and API assertions passed")
 
