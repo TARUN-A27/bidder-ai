@@ -16,7 +16,9 @@ router = APIRouter(tags=["assessments"])
 
 
 def get_assessment_service():
-    return AssessmentService(AssessmentRepository(), PrototypeEvidenceProvider(get_settings()))
+    repository = AssessmentRepository()
+    provider = PrototypeEvidenceProvider(get_settings(), repository.submission_documents)
+    return AssessmentService(repository, provider)
 
 
 Service = Annotated[AssessmentService, Depends(get_assessment_service)]

@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     oracle_pool_increment: int = Field(default=1, ge=1)
 
     storage_root: Path = PROJECT_ROOT / "storage" / "uploads"
+    allow_preseeded_prototype_document_fallback: bool = True
 
     max_upload_files: int = Field(default=100, ge=1, le=1000)
     max_archive_bytes: int = Field(default=100 * 1024 * 1024, ge=1)

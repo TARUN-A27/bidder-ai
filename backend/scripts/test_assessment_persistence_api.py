@@ -24,7 +24,7 @@ def main():
         identities = ensure_prototype_submissions(settings)
         assert ensure_prototype_submissions(settings) == identities
         repository = AssessmentRepository()
-        provider = PrototypeEvidenceProvider(settings)
+        provider = PrototypeEvidenceProvider(settings, repository.submission_documents)
         service = AssessmentService(repository, provider)
         expected = {"BIDDER_A": (100.0, "LOW", []), "BIDDER_B": (80.5, "HIGH", ["RISK-OVR-005"]),
                     "BIDDER_C": (34.0, "CRITICAL", [f"RISK-OVR-{i:03}" for i in range(1, 8)])}
