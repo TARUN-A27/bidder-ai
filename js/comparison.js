@@ -30,14 +30,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     clear(tbody);
     visible.forEach((bidder) => {
       const issues = Number(bidder.non_compliant_count) + Number(bidder.missing_count) + Number(bidder.needs_review_count);
-      const pp = el('button', { type: 'button', className: 'pp-table-btn', text: 'Previous Performance', dataset: { ppOpen: '', ppBidder: performanceKey(bidder.bidder_name), ppName: bidder.bidder_name } });
+      const performanceKeyValue = performanceKey(bidder.bidder_name);
+      const pp = el('button', { type: 'button', className: 'pp-table-btn', text: 'Previous Performance', dataset: { ppOpen: '', ppBidder: performanceKeyValue, ppName: bidder.bidder_name } });
+      const insight = el('button', { type: 'button', className: 'pp-table-btn', text: 'AI Performance Insight', dataset: { aiInsightOpen: '', ppBidder: performanceKeyValue, ppName: bidder.bidder_name } });
       const findings = `${bidder.non_compliant_count} non-compliant · ${bidder.missing_count} missing · ${bidder.needs_review_count} review`;
       tbody.append(el('tr', {}, [
         el('td', {}, [el('strong', { text: bidder.bidder_name }), el('div', { className: 'text-muted', text: bidder.recommendation })]),
         el('td', { className: 'mono', text: bidder.score }),
         el('td', {}, [riskBadge(bidder.final_risk)]),
         el('td', {}, [el('strong', { text: `${issues} total` }), el('div', { className: 'text-muted', text: findings })]),
-        el('td', {}, [pp]),
+        el('td', {}, [el('div', { className: 'actions-cell' }, [pp, insight])]),
         el('td', {}, [el('a', { className: 'btn btn-sm', text: 'Investigate', href: page('investigation.html', { submission_id: bidder.submission_id, tender_id: tenderId }) })]),
       ]));
     });

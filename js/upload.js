@@ -2,192 +2,630 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { get, postMultipart } = window.BidGuardAPI;
   const { params, page } = window.BidGuardNav;
   const { clear, el } = window.BidGuardUI;
+
   const tenderId = params().get('tender_id');
+
   const form = document.getElementById('importForm');
-  const mode = document.getElementById('importMode');
-  const input = document.getElementById('fileInput');
+  const zipInput = document.getElementById('zipInput');
+  const folderInput = document.getElementById('folderInput');
+  const chooseZip = document.getElementById('chooseZip');
+  const chooseFolder = document.getElementById('chooseFolder');
+  const dropzone = document.getElementById('dropzone');
+
   const fileList = document.getElementById('fileList');
-  const count = document.getElementById('fileCount');
+  const selectionLabel = document.getElementById('selectionLabel');
   const state = document.getElementById('uploadState');
   const submit = document.getElementById('importButton');
   const result = document.getElementById('importResult');
-  const dropzone = document.getElementById('dropzone');
+
+  const processingPanel = document.getElementById('processingPanel');
+  const processingStage = document.getElementById('processingStage');
+  const processingCurrent = document.getElementById('processingCurrent');
+  const processingHint = document.getElementById('processingHint');
+
+  let processingStageTimer = null;
+  let processingEvidenceTimer = null;
+
+
+  let selectedMode = null;
   const files = new Map();
 
   if (!tenderId) {
     state.className = 'api-state error';
-    state.textContent = 'Missing tender_id. Return to the dashboard and select a tender.';
+    state.textContent =
+      'Missing tender_id. Return to the dashboard and select a tender.';
     submit.disabled = true;
   }
-  document.getElementById('backLink').href = page('tender-detail.html', { tender_id: tenderId });
-  document.getElementById('tenderNavLink').href = page('tender-detail.html', { tender_id: tenderId });
-  document.getElementById('comparisonNav').href = page('comparison.html', { tender_id: tenderId });
+
+  document.getElementById('backLink').href =
+    page('tender-detail.html', { tender_id: tenderId });
+
+  document.getElementById('tenderNavLink').href =
+    page('tender-detail.html', { tender_id: tenderId });
+
+  document.getElementById('comparisonNav').href =
+    page('comparison.html', { tender_id: tenderId });
+
   if (tenderId) {
     try {
-      const tender = await get(`/tenders/${encodeURIComponent(tenderId)}`);
-      document.getElementById('tenderContext').textContent = `${tender.bid_number || tender.dataset_id || tender.tender_id} · ${tender.title}`;
-      document.getElementById('datasetId').value = tender.dataset_id || '';
+      const tender = await get(
+        `/tenders/${encodeURIComponent(tenderId)}`
+      );
+
+      document.getElementById('tenderContext').textContent =
+        `${tender.bid_number || tender.dataset_id || tender.tender_id} · ${tender.title}`;
     } catch (_) {
-      document.getElementById('tenderContext').textContent = `TENDER · ${tenderId}`;
+      document.getElementById('tenderContext').textContent =
+        `TENDER · ${tenderId}`;
     }
   }
 
-  function key(file) {
-    return `${file.name}:${file.size}:${file.lastModified}`;
+  function fileKey(file) {
+    return file.webkitRelativePath
+      || `${file.name}:${file.size}:${file.lastModified}`;
   }
 
-  function configureMode() {
-    files.clear();
-    input.value = '';
-    input.multiple = mode.value === 'files';
-    input.accept = mode.value === 'zip' ? '.zip,application/zip' : '.pdf,application/pdf';
-    document.getElementById('profileFields').hidden = mode.value === 'zip';
-    document.querySelectorAll('#profileFields input, #profileFields textarea').forEach((field) => { field.disabled = mode.value === 'zip'; });
-    document.getElementById('fileHelp').textContent = mode.value === 'zip'
-      ? 'Select one ZIP containing bidder_profile.json and bidder PDFs.'
-      : 'Select one or more PDFs. Bidder name and PAN reference are required.';
-    document.getElementById('dropTitle').textContent = mode.value === 'zip'
-      ? 'Drag & drop a bidder ZIP here'
-      : 'Drag & drop bidder PDFs here';
-    renderFiles();
+  function setCheck(id, ready) {
+    const row = document.getElementById(id);
+
+    row.classList.toggle('uploaded', Boolean(ready));
+    row.querySelector('.state').textContent = ready ? 'OK' : '–';
+  }
+
+  function resetIdentityCheck() {
+    setCheck('checkProfile', false);
   }
 
   function renderFiles() {
     clear(fileList);
-    files.forEach((file, fileKey) => {
-      const label = el('span', { text: file.name });
-      const remove = el('button', { type: 'button', text: 'Remove', className: 'btn btn-sm' });
-      remove.setAttribute('aria-label', `Remove ${file.name}`);
-      remove.addEventListener('click', () => { files.delete(fileKey); renderFiles(); });
-      fileList.append(el('div', { className: 'file-chip' }, [label, remove]));
+
+    files.forEach((file) => {
+      const displayName =
+        file.webkitRelativePath || file.name;
+
+      fileList.append(
+        el('div', { className: 'file-chip' }, [
+          el('span', { text: displayName }),
+        ])
+      );
     });
-    count.textContent = `${files.size} selected`;
+
     const ready = files.size > 0;
-    ['checkFormat', 'checkFiles'].forEach((id) => {
-      const row = document.getElementById(id);
-      row.classList.toggle('uploaded', ready);
-      row.querySelector('.state').textContent = ready ? '✓' : '–';
-    });
-    const profileReady = mode.value === 'files' && (
-      document.getElementById('bidderName').value.trim()
-      && document.getElementById('panReference').value.trim()
-    );
-    const profileRow = document.getElementById('checkProfile');
-    profileRow.classList.toggle('uploaded', Boolean(profileReady));
-    profileRow.querySelector('.state').textContent = profileReady ? '✓' : '–';
-    document.getElementById('checklistBadge').textContent = ready ? `${files.size} selected` : 'Waiting';
-  }
 
-  function addFiles(selectedFiles) {
-    Array.from(selectedFiles || []).forEach((file) => files.set(key(file), file));
-    if (mode.value === 'zip' && files.size > 1) {
-      const last = Array.from(files.entries()).pop();
-      files.clear();
-      files.set(last[0], last[1]);
+    setCheck('checkFormat', ready);
+    setCheck('checkFiles', ready);
+
+    if (!ready) {
+      selectionLabel.textContent = 'Nothing selected.';
+      document.getElementById('checklistBadge').textContent = 'Waiting';
+      return;
     }
-    renderFiles();
-    input.value = '';
-  }
 
-  input.addEventListener('change', () => addFiles(input.files));
-  dropzone.addEventListener('click', (event) => { if (event.target !== input) input.click(); });
-  dropzone.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.click(); }
-  });
-  ['dragenter', 'dragover'].forEach((name) => dropzone.addEventListener(name, (event) => {
-    event.preventDefault(); dropzone.classList.add('drag-over');
-  }));
-  ['dragleave', 'drop'].forEach((name) => dropzone.addEventListener(name, (event) => {
-    event.preventDefault(); dropzone.classList.remove('drag-over');
-  }));
-  dropzone.addEventListener('drop', (event) => addFiles(event.dataTransfer.files));
-  ['bidderName', 'panReference'].forEach((id) => document.getElementById(id).addEventListener('input', renderFiles));
-  mode.addEventListener('change', configureMode);
-
-  function validate(selected) {
-    if (!tenderId) return 'A tender must be selected.';
-    if (!selected.length) return 'Select a submission package to import.';
-    if (mode.value === 'zip') {
-      if (selected.length !== 1 || !selected[0].name.toLowerCase().endsWith('.zip')) return 'ZIP import requires exactly one .zip file.';
+    if (selectedMode === 'zip') {
+      selectionLabel.textContent =
+        `${files.size} ZIP selected. Bidder packages will be detected automatically.`;
     } else {
-      if (selected.some((file) => !file.name.toLowerCase().endsWith('.pdf'))) return 'Multi-file import accepts PDF files only.';
-      if (!document.getElementById('bidderName').value.trim() || !document.getElementById('panReference').value.trim()) return 'Bidder name and PAN reference are required.';
+      selectionLabel.textContent =
+        `${files.size} PDF document(s) selected from the folder.`;
     }
+
+    document.getElementById('checklistBadge').textContent =
+      selectedMode === 'zip'
+        ? 'ZIP ready'
+        : `${files.size} PDFs`;
+  }
+
+  function selectZip(file) {
+    files.clear();
+    resetIdentityCheck();
+
+    if (!file) {
+      selectedMode = null;
+      renderFiles();
+      return;
+    }
+
+    selectedMode = 'zip';
+    files.set(fileKey(file), file);
+
+    state.className = 'api-state';
+    state.textContent =
+      'ZIP selected. BidGuard will detect bidder packages automatically.';
+
+    renderFiles();
+  }
+
+  function selectFolder(fileCollection) {
+    files.clear();
+    resetIdentityCheck();
+
+    const pdfs = Array.from(fileCollection || [])
+      .filter((file) =>
+        file.name.toLowerCase().endsWith('.pdf')
+      );
+
+    if (!pdfs.length) {
+      selectedMode = null;
+      state.className = 'api-state error';
+      state.textContent =
+        'The selected folder does not contain PDF evidence.';
+      renderFiles();
+      return;
+    }
+
+    selectedMode = 'folder';
+
+    pdfs.forEach((file) => {
+      files.set(fileKey(file), file);
+    });
+
+    state.className = 'api-state';
+    state.textContent =
+      'Folder selected. BidGuard will detect individual bidder packages automatically.';
+
+    renderFiles();
+  }
+
+  chooseZip.addEventListener('click', () => {
+    zipInput.click();
+  });
+
+  chooseFolder.addEventListener('click', () => {
+    folderInput.click();
+  });
+
+  zipInput.addEventListener('change', () => {
+    selectZip(zipInput.files && zipInput.files[0]);
+    zipInput.value = '';
+  });
+
+  folderInput.addEventListener('change', () => {
+    selectFolder(folderInput.files);
+    folderInput.value = '';
+  });
+
+  dropzone.addEventListener('click', () => {
+    zipInput.click();
+  });
+
+  dropzone.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      zipInput.click();
+    }
+  });
+
+  ['dragenter', 'dragover'].forEach((name) => {
+    dropzone.addEventListener(name, (event) => {
+      event.preventDefault();
+      dropzone.classList.add('drag-over');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach((name) => {
+    dropzone.addEventListener(name, (event) => {
+      event.preventDefault();
+      dropzone.classList.remove('drag-over');
+    });
+  });
+
+  dropzone.addEventListener('drop', (event) => {
+    const dropped = Array.from(event.dataTransfer.files || []);
+
+    if (
+      dropped.length !== 1
+      || !dropped[0].name.toLowerCase().endsWith('.zip')
+    ) {
+      state.className = 'api-state error';
+      state.textContent =
+        'Drag-and-drop accepts one ZIP. Use "Choose folder" for a folder.';
+      return;
+    }
+
+    selectZip(dropped[0]);
+  });
+
+  function validate() {
+    if (!tenderId) {
+      return 'A tender must be selected.';
+    }
+
+    if (!selectedMode || !files.size) {
+      return 'Select a ZIP or bidder folder to import.';
+    }
+
+    if (selectedMode === 'zip') {
+      const selected = Array.from(files.values());
+
+      if (
+        selected.length !== 1
+        || !selected[0].name.toLowerCase().endsWith('.zip')
+      ) {
+        return 'Select exactly one ZIP archive.';
+      }
+    }
+
+    if (selectedMode === 'folder') {
+      const selected = Array.from(files.values());
+
+      if (
+        selected.some(
+          (file) => !file.name.toLowerCase().endsWith('.pdf')
+        )
+      ) {
+        return 'Folder import accepts PDF evidence only.';
+      }
+
+      if (
+        selected.some(
+          (file) => !file.webkitRelativePath
+        )
+      ) {
+        return 'Folder structure could not be determined. Select the parent folder again.';
+      }
+    }
+
     return '';
+  }
+
+  function addAssessmentLink(container, submission) {
+    if (!submission || !submission.ready_for_assessment) {
+      return;
+    }
+
+    container.append(
+      el('a', {
+        className: 'btn btn-primary btn-sm',
+        text: 'Run Assessment',
+        href: page('processing.html', {
+          tender_id: submission.tender_id,
+          submission_id: submission.submission_id,
+          bidder_id: submission.bidder_id,
+        }),
+      })
+    );
+  }
+
+  function renderBulkResult(imported) {
+    clear(result);
+
+    const importedCount = imported.imported_count || 0;
+    const duplicateCount = imported.duplicate_count || 0;
+    const failedCount = imported.failed_count || 0;
+    const packageCount = imported.package_count || 0;
+
+    const summary = el('div', {
+      className: failedCount ? 'api-state' : 'api-state success',
+    });
+
+    summary.append(
+      el('strong', {
+        text: `${packageCount} bidder package${packageCount === 1 ? '' : 's'} detected`,
+      })
+    );
+
+    summary.append(
+      el('p', {
+        text:
+          `${importedCount} imported · ` +
+          `${duplicateCount} already imported · ` +
+          `${failedCount} failed`,
+      })
+    );
+
+    result.append(summary);
+
+    (imported.items || []).forEach((item) => {
+      const submission = item.submission;
+      const isFailure = item.status === 'FAILED';
+      const isDuplicate = item.status === 'DUPLICATE';
+
+      const card = el('div', {
+        className: isFailure
+          ? 'api-state error'
+          : 'api-state success',
+      });
+
+      const bidderName =
+        submission?.bidder_name
+        || item.package_label
+        || 'Bidder package';
+
+      let statusText;
+
+      if (item.status === 'IMPORTED') {
+        statusText = 'Imported successfully';
+      } else if (isDuplicate) {
+        statusText = 'Already imported';
+      } else {
+        statusText = 'Import failed';
+      }
+
+      card.append(
+        el('strong', {
+          text: `${bidderName} — ${statusText}`,
+        })
+      );
+
+      if (submission) {
+        card.append(
+          el('p', {
+            text:
+              `${submission.document_count} stored document(s)` +
+              (isDuplicate
+                ? ' · Existing submission reused.'
+                : ''),
+          })
+        );
+
+        const warnings = submission.warnings || [];
+
+        if (warnings.length) {
+          const list = el('ul', {
+            className: 'import-warnings',
+          });
+
+          warnings.forEach((warning) => {
+            list.append(el('li', { text: warning }));
+          });
+
+          card.append(list);
+        }
+
+      }
+
+      if (isFailure) {
+        card.append(
+          el('p', {
+            text:
+              item.error_message
+              || item.error_code
+              || 'Bidder package could not be imported.',
+          })
+        );
+      }
+
+      result.append(card);
+    });
+
+    result.hidden = false;
+
+    const successfulPackages =
+      importedCount + duplicateCount;
+
+    if (successfulPackages > 0) {
+      setCheck('checkProfile', true);
+    }
+
+    if (failedCount === 0) {
+      state.className = 'api-state success';
+
+      if (duplicateCount && importedCount === 0) {
+        state.textContent =
+          'All bidder packages were already imported. Existing submissions are ready to use.';
+      } else if (duplicateCount) {
+        state.textContent =
+          'Import completed. Existing bidder submissions were reused where duplicates were detected.';
+      } else {
+        state.textContent =
+          'Bidder evidence imported successfully.';
+      }
+    } else if (successfulPackages > 0) {
+      state.className = 'api-state';
+      state.textContent =
+        `Import completed with ${failedCount} failed bidder package(s). Review the results below.`;
+    } else {
+      state.className = 'api-state error';
+      state.textContent =
+        'No bidder packages could be imported.';
+    }
+  }
+
+
+  function clearProcessingTimers() {
+    if (processingStageTimer) {
+      window.clearInterval(processingStageTimer);
+      processingStageTimer = null;
+    }
+
+    if (processingEvidenceTimer) {
+      window.clearInterval(processingEvidenceTimer);
+      processingEvidenceTimer = null;
+    }
+  }
+
+  function changeProcessingStage(text) {
+    processingStage.classList.add('stage-changing');
+
+    window.setTimeout(() => {
+      processingStage.textContent = text;
+      processingStage.classList.remove('stage-changing');
+    }, 160);
+  }
+
+  function changeProcessingEvidence(text) {
+    processingCurrent.classList.add('file-changing');
+
+    window.setTimeout(() => {
+      processingCurrent.textContent = text;
+      processingCurrent.classList.remove('file-changing');
+    }, 140);
+  }
+
+  function startProcessingAnimation(selectedFiles) {
+    clearProcessingTimers();
+
+    processingPanel.hidden = false;
+    processingPanel.classList.remove(
+      'processing-success',
+      'processing-error'
+    );
+
+    const stages = [
+      'Uploading bidder evidence…',
+      'Discovering bidder packages…',
+      'Classifying uploaded documents…',
+      'Extracting bidder identity…',
+      'Cross-checking PAN, GST and Udyam evidence…',
+      'Checking existing submissions in Oracle…',
+      'Preparing bidder import results…',
+    ];
+
+    const evidenceNames = selectedFiles
+      .map((file) => file.webkitRelativePath || file.name)
+      .filter(Boolean);
+
+    let stageIndex = 0;
+    let evidenceIndex = 0;
+
+    processingStage.textContent = stages[0];
+
+    if (selectedMode === 'zip') {
+      const zipName = evidenceNames[0] || 'Bidder ZIP';
+
+      processingCurrent.textContent = zipName;
+      processingHint.textContent =
+        'BidGuard is discovering bidder folders and PDF evidence inside this archive.';
+    } else {
+      processingCurrent.textContent =
+        evidenceNames[0] || 'Selected bidder evidence';
+
+      processingHint.textContent =
+        `${evidenceNames.length} PDF document(s) selected. BidGuard is discovering bidder packages automatically.`;
+    }
+
+    processingStageTimer = window.setInterval(() => {
+      stageIndex = Math.min(stageIndex + 1, stages.length - 1);
+      changeProcessingStage(stages[stageIndex]);
+
+      if (stageIndex === stages.length - 1) {
+        window.clearInterval(processingStageTimer);
+        processingStageTimer = null;
+      }
+    }, 2500);
+
+    if (selectedMode === 'folder' && evidenceNames.length > 1) {
+      processingEvidenceTimer = window.setInterval(() => {
+        evidenceIndex = (evidenceIndex + 1) % evidenceNames.length;
+        changeProcessingEvidence(evidenceNames[evidenceIndex]);
+      }, 1250);
+    }
+  }
+
+  function finishProcessingAnimation(kind, message) {
+    clearProcessingTimers();
+
+    if (!processingPanel) {
+      return;
+    }
+
+    processingPanel.classList.remove(
+      'processing-success',
+      'processing-error'
+    );
+
+    if (kind === 'success') {
+      processingPanel.classList.add('processing-success');
+      processingStage.textContent = 'Processing complete';
+    } else {
+      processingPanel.classList.add('processing-error');
+      processingStage.textContent = 'Processing stopped';
+    }
+
+    processingCurrent.textContent = message;
+
+    window.setTimeout(() => {
+      processingPanel.hidden = true;
+    }, 1100);
   }
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const selected = Array.from(files.values());
-    const validation = validate(selected);
+
+    const validation = validate();
+
     state.hidden = false;
     result.hidden = true;
+
     if (validation) {
       state.className = 'api-state error';
       state.textContent = validation;
       return;
     }
+
     const data = new FormData();
     let path;
-    if (mode.value === 'zip') {
-      data.append('file', selected[0], selected[0].name);
-      path = `/tenders/${encodeURIComponent(tenderId)}/submissions/import-zip`;
+
+    if (selectedMode === 'zip') {
+      const file = Array.from(files.values())[0];
+
+      data.append('file', file, file.name);
+
+      path =
+        `/tenders/${encodeURIComponent(tenderId)}` +
+        '/submissions/import-bulk-zip';
     } else {
-      selected.forEach((file) => data.append('files', file, file.name));
-      const profile = {
-        bidder_name: document.getElementById('bidderName').value.trim(),
-        pan_reference: document.getElementById('panReference').value.trim(),
-        is_synthetic: document.getElementById('isSynthetic').checked,
-        mse_claimed: document.getElementById('mseClaimed').checked,
-        startup_claimed: document.getElementById('startupClaimed').checked,
-        nsic_claimed: document.getElementById('nsicClaimed').checked,
-        emd_exemption_claimed: document.getElementById('emdExemptionClaimed').checked,
-      };
-      [
-        ['dataset_id', 'datasetId'], ['bidder_reference', 'bidderReference'], ['entity_type', 'entityType'],
-        ['registered_address', 'registeredAddress'], ['gst_reference', 'gstReference'], ['udyam_reference', 'udyamReference'],
-        ['offered_make', 'offeredMake'], ['offered_model', 'offeredModel'],
-      ].forEach(([field, id]) => {
-        const value = document.getElementById(id).value.trim();
-        if (value) profile[field] = value;
+      Array.from(files.values()).forEach((file) => {
+        data.append(
+          'files',
+          file,
+          file.webkitRelativePath || file.name
+        );
       });
-      data.append('bidder_profile', JSON.stringify(profile));
-      path = `/tenders/${encodeURIComponent(tenderId)}/submissions/import-files`;
+
+      path =
+        `/tenders/${encodeURIComponent(tenderId)}` +
+        '/submissions/import-folder';
     }
+
     submit.disabled = true;
+    chooseZip.disabled = true;
+    chooseFolder.disabled = true;
+
     form.setAttribute('aria-busy', 'true');
-    state.className = 'api-state';
-    state.textContent = 'Uploading and validating bidder submission…';
+
+    state.hidden = true;
+
+    const evidenceBeingProcessed = Array.from(files.values());
+
+    startProcessingAnimation(evidenceBeingProcessed);
+
+    const originalButtonText = submit.textContent;
+    submit.textContent = 'Processing evidence…';
+
     try {
       const imported = await postMultipart(path, data);
-      state.className = 'api-state success';
-      state.textContent = imported.duplicate_import
-        ? 'This exact submission was already imported. The existing record was returned.'
-        : 'Bidder submission imported successfully.';
-      const profileRow = document.getElementById('checkProfile');
-      profileRow.classList.add('uploaded');
-      profileRow.querySelector('.state').textContent = '✓';
-      clear(result);
-      result.append(el('p', { text: `${imported.bidder_name}: ${imported.document_count} stored document(s).` }));
-      const warnings = imported.warnings || [];
-      if (warnings.length) {
-        const list = el('ul', { className: 'import-warnings' });
-        warnings.forEach((warning) => list.append(el('li', { text: warning })));
-        result.append(el('div', { className: 'api-state', attrs: { role: 'status' } }, [el('strong', { text: 'Backend warnings' }), list]));
-      }
-      if (imported.ready_for_assessment) result.append(el('a', {
-        className: 'btn btn-primary', text: 'Run Assessment',
-        href: page('processing.html', { tender_id: imported.tender_id, submission_id: imported.submission_id, bidder_id: imported.bidder_id }),
-      }));
-      result.hidden = false;
+
+      finishProcessingAnimation(
+        'success',
+        'Bidder evidence processed successfully.'
+      );
+
+      state.hidden = false;
+      renderBulkResult(imported);
     } catch (error) {
+      finishProcessingAnimation(
+        'error',
+        error.message || 'Bidder evidence import failed.'
+      );
+
+      state.hidden = false;
       state.className = 'api-state error';
-      state.textContent = error.message || 'Import failed.';
+      state.textContent =
+        error.message || 'Bidder evidence import failed.';
     } finally {
       submit.disabled = false;
+      chooseZip.disabled = false;
+      chooseFolder.disabled = false;
+
+      submit.textContent =
+        typeof originalButtonText !== 'undefined'
+          ? originalButtonText
+          : 'Import bidder evidence';
+
       form.setAttribute('aria-busy', 'false');
     }
   });
 
-  configureMode();
+  renderFiles();
 });

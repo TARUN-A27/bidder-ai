@@ -31,12 +31,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
   tabButtons.forEach((button, index) => {
+    const panel = document.getElementById(`tender-panel-${button.dataset.tenderTab}`);
+    button.id = `tender-tab-${button.dataset.tenderTab}`;
+    button.setAttribute('aria-controls', panel.id);
+    button.tabIndex = index === 0 ? 0 : -1;
+    panel.setAttribute('aria-labelledby', button.id);
     button.addEventListener('click', () => selectTab(button));
     button.addEventListener('keydown', (event) => {
-      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
-      const offset = event.key === 'ArrowRight' ? 1 : -1;
-      const next = tabButtons[(index + offset + tabButtons.length) % tabButtons.length];
+      const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabButtons.length - 1
+        : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabButtons.length) % tabButtons.length;
+      const next = tabButtons[nextIndex];
       selectTab(next); next.focus();
     });
   });
@@ -44,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderRequirements(tender) {
     clear(requirementList);
     tender.requirements.forEach((requirement) => requirementList.append(el('div', { className: 'req-item' }, [
-      el('div', { className: 'check', text: '✓' }),
+      el('div', { className: 'check', text: 'OK', attrs: { 'aria-hidden': 'true' } }),
       el('div', { className: 'name' }, [el('strong', { text: requirement.title }), el('div', { className: 'text-muted', text: requirement.description || 'No description provided.' })]),
       el('span', { className: 'tag', text: requirement.applicability || requirement.severity || 'Configured' }),
     ])));

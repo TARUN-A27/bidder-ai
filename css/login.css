@@ -1,14 +1,15 @@
-.login-shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(420px,.9fr);background:#fff;}
-.login-hero{position:relative;padding:52px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#111;color:#fff;}
-.login-hero::after{content:"BG";position:absolute;right:-28px;bottom:-95px;font:700 300px/1 var(--font-body);color:rgba(255,255,255,.035);pointer-events:none;}
+.login-shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(420px,.92fr);background:#fff;}
+.login-hero{position:relative;padding:52px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#fff;color:#111;border-right:1px solid var(--border);}
+.login-hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#111;}
+.login-hero::after{content:"BG";position:absolute;right:-28px;bottom:-95px;font:700 300px/1 var(--font-body);color:rgba(0,0,0,.025);pointer-events:none;}
 .hero-top{position:relative;display:flex;align-items:center;gap:14px;z-index:1;}
-.hero-seal{width:52px;height:52px;border:1px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font:700 14px var(--font-mono);}
-.hero-title{font-size:19px;font-weight:700;}.hero-title small{display:block;margin-top:3px;font-size:12px;color:#CFCFCF;font-weight:400;}
-.hero-mid{position:relative;max-width:560px;z-index:1;}.hero-mid .eyebrow{color:#BDBDBD;}.hero-mid h1{font-size:42px;line-height:1.08;margin:12px 0 18px;color:#fff;}.hero-mid p{color:#D7D7D7;font-size:16px;line-height:1.65;}
-.hero-stamps{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;}.hero-stamps .stamp{background:#2A2A2A;color:#F5F5F5;border:1px solid #444;}
-.hero-ledger{position:relative;border-top:1px solid #3B3B3B;padding-top:16px;color:#BDBDBD;font-size:13px;max-width:540px;z-index:1;}
-.login-panel{display:flex;align-items:center;justify-content:center;padding:44px 32px;background:#FAFAFA;}.login-card{width:100%;max-width:430px;}.login-card .card{padding:34px;}.login-card h2{font-size:26px;margin-bottom:6px;}.login-card .sub{color:var(--ink-soft);font-size:14px;margin-bottom:24px;}
-.role-note{display:flex;align-items:flex-start;gap:10px;background:#F5F5F5;border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:22px;font-size:13px;}
-.demo-note{margin-top:18px;padding:12px 14px;background:#F5F5F5;border-left:3px solid #111;font-size:12px;color:var(--ink-soft);}
-@media(max-width:900px){.login-shell{grid-template-columns:1fr}.login-hero{min-height:330px;padding:36px}.hero-mid{margin:48px 0}.login-panel{padding:36px 20px}}
+.hero-seal{width:52px;height:52px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px var(--font-mono);box-shadow:var(--shadow-sm);}
+.hero-title{font-size:19px;font-weight:700;}.hero-title small{display:block;margin-top:3px;font-size:12px;color:var(--ink-soft);font-weight:400;}
+.hero-mid{position:relative;max-width:590px;z-index:1;}.hero-mid .eyebrow{color:var(--ink-soft);}.hero-mid h1{font-size:42px;line-height:1.08;margin:12px 0 18px;color:#111;}.hero-mid p{color:var(--ink-soft);font-size:16px;line-height:1.65;}
+.hero-stamps{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;}.hero-stamps .stamp{background:#F2F2F2;color:#333;border:1px solid var(--border);}
+.hero-ledger{position:relative;border-top:1px solid var(--border);padding-top:16px;color:var(--ink-soft);font-size:13px;max-width:560px;z-index:1;}
+.login-panel{display:flex;align-items:center;justify-content:center;padding:44px 32px;background:#FAFAFA;}.login-card{width:100%;max-width:430px;}.login-card .card{padding:34px;background:#fff;}.login-card h2{font-size:26px;margin-bottom:6px;}.login-card .sub{color:var(--ink-soft);font-size:14px;margin-bottom:24px;}
+.role-note{display:flex;align-items:flex-start;gap:10px;background:#F7F7F7;border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:22px;font-size:13px;}
+.demo-note{margin-top:18px;padding:12px 14px;background:#F7F7F7;border-left:3px solid #111;font-size:12px;color:var(--ink-soft);}
+@media(max-width:900px){.login-shell{grid-template-columns:1fr}.login-hero{min-height:330px;padding:36px;border-right:0;border-bottom:1px solid var(--border)}.hero-mid{margin:48px 0}.login-panel{padding:36px 20px}}
 @media(max-width:520px){.login-hero{padding:28px}.hero-mid h1{font-size:32px}.login-card .card{padding:24px}}

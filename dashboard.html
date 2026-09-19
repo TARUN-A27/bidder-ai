@@ -5,15 +5,15 @@
   <title>Tender Dashboard — BidGuard AI</title>
   <link rel="stylesheet" href="css/tokens.css"><link rel="stylesheet" href="css/components.css"><link rel="stylesheet" href="css/layout.css"><link rel="stylesheet" href="css/dashboard.css">
 </head>
-<body>
-<header class="topbar"><div class="container"><a href="dashboard.html" class="brand"><div class="brand-seal">BG</div><div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div></a><div class="officer-menu"><button class="officer-btn" data-officer-btn><div class="officer-avatar">RS</div><div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div></button><div class="officer-dropdown" data-officer-dropdown><a href="index.html" data-logout>Sign out</a></div></div></div></header>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<header class="topbar"><div class="container"><a href="dashboard.html" class="brand"><div class="brand-seal">BG</div><div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div></a><div class="officer-menu"><button type="button" class="officer-btn" data-officer-btn><div class="officer-avatar">RS</div><div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div></button><div class="officer-dropdown" data-officer-dropdown><a href="index.html" data-logout>Sign out</a></div></div></div></header>
 <div class="tabstrip-wrap"><div class="container"><nav class="tabstrip" aria-label="Primary navigation"><a href="dashboard.html" class="active" aria-current="page">Tender register</a></nav></div></div>
-<main><div class="container">
+<main id="main-content"><div class="container">
   <div class="page-head"><div class="title-row"><div><span class="case-id">PROCUREMENT WORKSPACE · LIVE DATA</span><h1>Tender register</h1></div><span class="stamp stamp-review stamp-sm" id="backendStatus" role="status">Connecting to backend</span></div></div>
   <div class="grid grid-3 mb-24">
     <div class="stat-tile accent-navy"><div class="num" id="tenderCount">—</div><div class="label eyebrow">Available tenders</div></div>
-    <div class="stat-tile accent-green"><div class="num" id="totalSubmissions">—</div><div class="label eyebrow">Bidder submissions</div></div>
-    <div class="stat-tile accent-amber"><div class="num" id="nearestClose">—</div><div class="label eyebrow">Next closing</div></div>
+    <div class="stat-tile accent-navy"><div class="num" id="totalSubmissions">—</div><div class="label eyebrow">Bidder submissions</div></div>
+    <div class="stat-tile accent-navy"><div class="num" id="nearestClose">—</div><div class="label eyebrow">Next closing</div></div>
   </div>
   <div class="grid grid-sidebar">
     <section><div class="card"><div class="card-header"><h3>Available tenders</h3><span class="badge badge-navy" id="availableBadge">Loading</span></div>

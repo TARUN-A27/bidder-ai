@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/investigation.css">
 <link rel="stylesheet" href="css/previous-performance.css">
 </head>
-<body>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
 <header class="topbar">
   <div class="container">
     <a href="dashboard.html" class="brand">
@@ -18,13 +18,11 @@
       <div class="brand-text"><strong>BidGuard AI</strong><span>AI-Powered Bid Compliance Platform</span></div>
     </a>
     <div class="officer-menu">
-      <button class="officer-btn" data-officer-btn>
+      <button type="button" class="officer-btn" data-officer-btn>
         <div class="officer-avatar">RS</div>
         <div><span class="name">R. Sharma</span><span class="role">Procurement Officer</span></div>
       </button>
       <div class="officer-dropdown" data-officer-dropdown>
-        <a href="#">My profile</a>
-        <a href="#">Notification settings</a>
         <a href="index.html" data-logout>Sign out</a>
       </div>
     </div>
@@ -36,13 +34,14 @@
     <nav class="tabstrip" aria-label="Primary navigation">
       <a href="dashboard.html">Dashboard</a>
       <a id="tenderLink" href="dashboard.html">Tenders</a>
-      <a id="comparisonLink" href="comparison.html" class="active">Bidder comparison</a>
+      <a id="comparisonLink" href="comparison.html">Comparison</a>
+      <a id="investigationNav" href="investigation.html" class="active" aria-current="page">Investigation</a>
       <a id="decisionNav" href="decision.html">Decision draft</a>
     </nav>
   </div>
 </div>
 
-<main class="investigation-page">
+<main class="investigation-page" id="main-content">
   <div class="container">
     <section class="investigation-titlebar">
       <div>
@@ -57,15 +56,15 @@
     </section>
 
     <div class="stepper workflow-stepper" aria-label="Bid evaluation workflow">
-      <div class="step done"><span class="num">✓</span> Tender detail</div>
-      <div class="step done"><span class="num">✓</span> Upload bidder</div>
-      <div class="step done"><span class="num">✓</span> Verification</div>
-      <div class="step done"><span class="num">✓</span> Comparison</div>
-      <div class="step current"><span class="num">5</span> Investigation</div>
+      <div class="step done"><span class="num">1</span> Tender detail</div>
+      <div class="step done"><span class="num">2</span> Upload bidder</div>
+      <div class="step done"><span class="num">3</span> Verification</div>
+      <div class="step done"><span class="num">4</span> Comparison</div>
+      <div class="step current" aria-current="step"><span class="num">5</span> Investigation</div>
       <div class="step"><span class="num">6</span> Decision</div>
     </div>
 
-    <div class="api-state investigation-state" id="investigationState">Loading persisted assessment and requirement evidence…</div>
+    <div class="api-state investigation-state" id="investigationState" role="status" aria-live="polite">Loading persisted assessment and requirement evidence…</div>
 
     <section class="bidder-hero" aria-labelledby="bidderName">
       <div class="bidder-identity">
@@ -111,12 +110,13 @@
         <span class="metric-note">Explicit backend review flags</span>
       </article>
     </section>
+    <div class="api-state human-review-notice" id="humanReviewNotice" role="note">Human review flags are loading. The Procurement Officer remains the final decision authority.</div>
     <section class="status-overview" id="statusOverview" aria-label="Requirement status overview"></section>
 
     <div class="workspace-tabs" role="tablist" aria-label="Investigation views">
-      <button class="active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
-      <button data-tab="requirements" role="tab" aria-selected="false">Requirements</button>
-      <button data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
+      <button type="button" class="active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+      <button type="button" data-tab="requirements" role="tab" aria-selected="false">Requirements</button>
+      <button type="button" data-tab="evidence" role="tab" aria-selected="false">Evidence</button>
     </div>
 
     <section class="tabpanel active" id="panel-overview" role="tabpanel">

@@ -19,12 +19,15 @@
   function errorMessage(body, fallback) {
     if (!body || typeof body !== 'object') return fallback;
     const detail = body.detail;
-    if (typeof detail === 'string' && detail.trim()) return detail;
-    if (detail && !Array.isArray(detail) && typeof detail.message === 'string') {
-      return detail.message;
+    if (typeof detail === 'string' && detail.trim()) return detail.trim();
+    if (detail && !Array.isArray(detail) && typeof detail.message === 'string' && detail.message.trim()) {
+      return detail.message.trim();
     }
-    if (Array.isArray(detail) && detail.length && typeof detail[0]?.msg === 'string') {
-      return detail[0].msg;
+    if (Array.isArray(detail)) {
+      const messages = detail
+        .map((item) => (item && typeof item.msg === 'string' ? item.msg.trim() : ''))
+        .filter(Boolean);
+      if (messages.length) return [...new Set(messages)].join(' · ');
     }
     return fallback;
   }

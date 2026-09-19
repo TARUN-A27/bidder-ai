@@ -20,7 +20,7 @@
 .doc-row:last-child{ border-bottom:none; }
 .doc-row .state{
   width:24px; height:24px; flex:none; border-radius:50%; background:var(--paper-dim);
-  display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--ink-faint);
+  display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--ink-faint);
 }
 .doc-row.uploaded .state{ border-color:var(--green-dark); color:var(--surface); background:var(--green-dark); }
 .doc-row .name{ flex:1; font-size:13.5px; font-weight:600; }
@@ -35,3 +35,195 @@
 .file-chip button{ background:none; border:none; cursor:pointer; color:var(--red); font-weight:700; font-size:14px; }
 .claim-fieldset{border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;flex-wrap:wrap;gap:12px 20px}.claim-fieldset legend{padding:0 7px;font-weight:700;font-size:13px}.claim-fieldset .checkbox-row{font-size:13px}
 .import-warnings{list-style:disc;padding-left:18px;margin-top:8px;display:grid;gap:5px}.import-warnings li{font-size:12.5px}
+
+
+/* BIDGUARD THINKING PROCESSOR */
+
+.processing-panel {
+  margin-top: 14px;
+  padding: 17px 18px;
+  border: 1px solid #dcdcdc;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.processing-panel[hidden] {
+  display: none !important;
+}
+
+.processing-top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.processing-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.processing-copy strong {
+  display: block;
+  color: #111111;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.processing-stage {
+  margin-top: 3px;
+  color: #666666;
+  font-size: 13px;
+  line-height: 1.4;
+  min-height: 18px;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.processing-stage.stage-changing {
+  opacity: 0.25;
+  transform: translateY(2px);
+}
+
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 38px;
+  min-width: 38px;
+  height: 30px;
+}
+
+.thinking-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #111111;
+  opacity: 0.22;
+  animation: bidguardThinkingDot 1.15s infinite ease-in-out;
+}
+
+.thinking-dots span:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.thinking-dots span:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@keyframes bidguardThinkingDot {
+  0%,
+  70%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0) scale(0.92);
+  }
+
+  35% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1);
+  }
+}
+
+.processing-detail {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  margin-top: 15px;
+  padding: 10px 11px;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.processing-detail-label {
+  color: #707070;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.processing-current {
+  min-width: 0;
+  overflow: hidden;
+  color: #222222;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 170ms ease;
+}
+
+.processing-current.file-changing {
+  opacity: 0.25;
+}
+
+.processing-track {
+  position: relative;
+  height: 3px;
+  margin-top: 13px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ededed;
+}
+
+.processing-track span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32%;
+  border-radius: inherit;
+  background: #111111;
+  animation: bidguardProcessingTrack 1.7s infinite ease-in-out;
+}
+
+@keyframes bidguardProcessingTrack {
+  0% {
+    left: -35%;
+  }
+
+  50% {
+    left: 50%;
+    width: 40%;
+  }
+
+  100% {
+    left: 105%;
+  }
+}
+
+.processing-hint {
+  margin-top: 9px;
+  color: #777777;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.processing-panel.processing-success .thinking-dots span {
+  animation: none;
+  opacity: 1;
+}
+
+.processing-panel.processing-error .thinking-dots span {
+  animation: none;
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-dots span,
+  .processing-track span {
+    animation: none;
+  }
+
+  .thinking-dots span {
+    opacity: 0.65;
+  }
+
+  .processing-track span {
+    left: 0;
+    width: 100%;
+  }
+}

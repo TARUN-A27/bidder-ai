@@ -27,9 +27,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     workspace.setAttribute('aria-busy', 'false');
     document.getElementById('overallStatus').textContent = 'Complete';
     progressTrack.className = 'progress-track mb-24 complete';
-    rows.forEach((row) => {
+    rows.forEach((row, index) => {
       row.className = 'pipe-row done';
-      row.querySelector('.dot').textContent = '✓';
+      row.querySelector('.dot').textContent = String(index + 1);
       row.querySelector('.status').textContent = 'Confirmed';
     });
     document.getElementById('stepCounter').textContent = 'ASSESSMENT COMPLETE';

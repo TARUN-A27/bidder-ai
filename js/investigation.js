@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (!submissionId) {
     state.className = 'api-state error';
+    state.setAttribute('role', 'alert');
     state.textContent = 'Missing submission_id. Select an assessed submission from tender detail.';
     return;
   }
@@ -182,15 +183,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('bidderName').textContent = submission.bidder_name;
     document.getElementById('submissionCode').textContent = `TENDER · ${tenderId} · SUBMISSION ${submission.submission_id}`;
-    document.getElementById('bidderMeta').textContent = `PAN: ${submission.pan_reference || 'Not provided'} · Submission ${submission.submission_id}`;
+    document.getElementById('bidderMeta').textContent = `PAN: ${submission.pan_reference || 'Not provided'} · Offered model: ${submission.offered_model || 'Not provided'} · Submission ${submission.submission_id}`;
     document.getElementById('score').textContent = String(assessment.score);
 
     const riskStamp = document.getElementById('riskStamp');
     riskStamp.textContent = risk || 'Pending';
-    riskStamp.className = `stamp ${risk === 'LOW' ? 'stamp-verified' : risk === 'MEDIUM' ? 'stamp-pending' : 'stamp-discrepancy'}`;
+    riskStamp.className = `stamp ${risk === 'LOW' ? 'stamp-verified' : risk === 'MEDIUM' ? 'stamp-pending' : risk === 'HIGH' ? 'stamp-high' : 'stamp-discrepancy'}`;
 
     const scoreRing = document.getElementById('scoreRing');
     scoreRing.classList.add(`risk-${(risk || 'pending').toLowerCase()}`);
+    scoreRing.setAttribute('aria-label', `Assessment score ${assessment.score} out of 100; final risk ${risk || 'pending'}`);
+    window.requestAnimationFrame(() => scoreRing.classList.add('reveal'));
 
     document.getElementById('baseRisk').replaceChildren(riskBadge(assessment.base_risk));
     document.getElementById('finalRisk').replaceChildren(riskBadge(assessment.final_risk));
@@ -202,6 +205,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('metricCompliant').textContent = String(compliant);
     document.getElementById('metricAttention').textContent = String(attention);
     document.getElementById('metricHumanReview').textContent = String(humanReview);
+    document.getElementById('humanReviewNotice').textContent = humanReview
+      ? `${humanReview} requirement${humanReview === 1 ? '' : 's'} explicitly require human review. Inspect the evidence and reasons before preparing a decision draft.`
+      : 'No requirement carries an explicit human-review flag. The assessment remains advisory and the Procurement Officer remains the final decision authority.';
 
     const statusOverview = document.getElementById('statusOverview');
     clear(statusOverview);
@@ -242,6 +248,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('comparisonLink').href = page('comparison.html', { tender_id: tenderId });
     document.getElementById('tenderLink').href = page('tender-detail.html', { tender_id: tenderId });
+    document.getElementById('investigationNav').href = page('investigation.html', { submission_id: submissionId, tender_id: tenderId });
     const decisionHref = page('decision.html', { submission_id: submissionId, tender_id: tenderId });
     document.getElementById('decisionLink').href = decisionHref;
     document.getElementById('decisionNav').href = decisionHref;
@@ -256,6 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.hidden = true;
   } catch (error) {
     state.className = 'api-state error';
+    state.setAttribute('role', 'alert');
     state.textContent = error.message || 'Unable to load the assessment.';
   }
 });

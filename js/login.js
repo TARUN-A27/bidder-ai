@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Verifying credentials…';
+    submitBtn.textContent = 'Opening workspace…';
     setTimeout(() => {
       window.location.href = 'dashboard.html';
     }, 550);
